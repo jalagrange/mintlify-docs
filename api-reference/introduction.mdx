@@ -1,20 +1,80 @@
 ---
 title: 'API Reference'
-description: 'Dynamic Quiz Generator API documentation'
+description: 'Dynamic Quiz Generator API documentation with orchestration architecture'
 ---
 
 # API Reference
 
-The Dynamic Quiz Generator provides a comprehensive REST API for integrating quiz generation, delivery, and analytics into your applications.
+The Dynamic Quiz Generator provides a comprehensive REST API for integrating AI-powered quiz generation, delivery, and analytics into your applications. The API is built around an **orchestrated agent architecture** that coordinates multiple specialized AI agents through workflow management.
 
-## Overview
+## Architecture Overview
 
-The API is organized around the core workflows of the Dynamic Quiz Generator:
+The API operates through three layers:
 
-- **Content Management**: Upload and process content for quiz generation
-- **Quiz Generation**: Create AI-powered quizzes from content
+### 1. Workflow Orchestration Layer
+**N8N-powered workflows** manage high-level business processes:
+- Content ingestion and processing pipelines
+- Quiz generation and review workflows  
+- Learner assessment and recommendation flows
+- Human-in-the-loop approval processes
+
+### 2. Agent Coordination Layer
+**Custom orchestrator services** coordinate specialized AI agents:
+- **Content Orchestrator**: Routes content to PDF, HTML, and video transcript agents
+- **Quiz Orchestrator**: Coordinates multiple question generation agents
+- **Scoring Orchestrator**: Manages automated and AI-assisted scoring
+
+### 3. Individual Agent Services
+**Containerized AI agents** handle specific tasks:
+- Content processing agents (PDF, HTML, Video Transcript)
+- Question generation agents (Multiple Choice, True/False, Fill-in-Blank, Short Answer)
+- Scoring and analysis agents
+
+```mermaid
+graph TB
+    subgraph "N8N Workflow Layer"
+        WF1[Content Processing Workflow]
+        WF2[Quiz Generation Workflow]
+        WF3[Review & Approval Workflow]
+    end
+    
+    subgraph "API Gateway & Orchestrators"
+        API[API Gateway]
+        CO[Content Orchestrator]
+        QO[Quiz Orchestrator]
+        SO[Scoring Orchestrator]
+    end
+    
+    subgraph "AI Agent Services"
+        PDF[PDF Agent]
+        MC[Multiple Choice Agent]
+        TF[True/False Agent]
+        SCORE[Scoring Agent]
+    end
+    
+    WF1 --> API
+    WF2 --> API
+    WF3 --> API
+    API --> CO
+    API --> QO
+    API --> SO
+    CO --> PDF
+    QO --> MC
+    QO --> TF
+    SO --> SCORE
+```
+
+## API Organization
+
+The API is organized around workflow-driven endpoints that support this orchestrated architecture:
+
+- **Workflow Management**: Control and monitor N8N workflows
+- **Content Processing**: Upload content and trigger processing workflows
+- **Quiz Generation**: Initiate quiz generation with agent coordination
+- **Review Management**: Human-in-the-loop review and approval processes
 - **Quiz Delivery**: Present quizzes to learners and collect responses
 - **Results & Analytics**: Retrieve quiz results and learner progress
+- **Agent Monitoring**: Monitor agent health and performance
 
 ## Base URL
 

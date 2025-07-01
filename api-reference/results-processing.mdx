@@ -1,0 +1,1186 @@
+---
+title: Results Processing
+description: APIs for quiz scoring, results analysis, and personalized recommendations
+---
+
+# Results Processing APIs
+
+The results processing APIs handle quiz scoring, learner performance analysis, and personalized recommendation generation. These endpoints work with the Scoring Orchestrator to coordinate automated scoring, AI-assisted evaluation, and recommendation engines.
+
+<Callout type="info">
+  **Architecture Context**: These APIs process quiz responses through specialized scoring agents and generate personalized learning recommendations. The Scoring Orchestrator coordinates different scoring methods based on question types. See [Workflow Management](/api-reference/workflows) for orchestration details.
+</Callout>
+
+## Submit Quiz Responses
+
+Submit learner responses for scoring and analysis.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/quizzes/published_quiz_789/submit" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "learnerId": "learner_123",
+    "sessionId": "session_abc456",
+    "responses": [
+      {
+        "questionId": "question_001",
+        "selectedAnswers": ["answer_001_a"],
+        "timeSpent": 45,
+        "confidence": 0.8,
+        "changeCount": 1
+      },
+      {
+        "questionId": "question_002",
+        "selectedAnswers": ["answer_002_b"],
+        "timeSpent": 30,
+        "confidence": 0.9,
+        "changeCount": 0
+      },
+      {
+        "questionId": "question_003",
+        "textAnswer": "Supervised learning uses labeled training data to learn patterns, while unsupervised learning finds patterns in unlabeled data.",
+        "timeSpent": 120,
+        "confidence": 0.7,
+        "changeCount": 2
+      }
+    ],
+    "sessionInfo": {
+      "startedAt": "2025-07-01T10:00:00Z",
+      "completedAt": "2025-07-01T10:25:30Z",
+      "totalDuration": 1530,
+      "browserInfo": "Chrome 91.0",
+      "platform": "web"
+    }
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/quizzes/published_quiz_789/submit', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    learnerId: 'learner_123',
+    sessionId: 'session_abc456',
+    responses: [
+      {
+        questionId: 'question_001',
+        selectedAnswers: ['answer_001_a'],
+        timeSpent: 45,
+        confidence: 0.8,
+        changeCount: 1
+      },
+      {
+        questionId: 'question_002',
+        selectedAnswers: ['answer_002_b'],
+        timeSpent: 30,
+        confidence: 0.9,
+        changeCount: 0
+      },
+      {
+        questionId: 'question_003',
+        textAnswer: 'Supervised learning uses labeled training data to learn patterns, while unsupervised learning finds patterns in unlabeled data.',
+        timeSpent: 120,
+        confidence: 0.7,
+        changeCount: 2
+      }
+    ],
+    sessionInfo: {
+      startedAt: '2025-07-01T10:00:00Z',
+      completedAt: '2025-07-01T10:25:30Z',
+      totalDuration: 1530,
+      browserInfo: 'Chrome 91.0',
+      platform: 'web'
+    }
+  })
+});
+
+const submissionResult = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/quizzes/published_quiz_789/submit',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'learnerId': 'learner_123',
+        'sessionId': 'session_abc456',
+        'responses': [
+            {
+                'questionId': 'question_001',
+                'selectedAnswers': ['answer_001_a'],
+                'timeSpent': 45,
+                'confidence': 0.8,
+                'changeCount': 1
+            },
+            {
+                'questionId': 'question_002',
+                'selectedAnswers': ['answer_002_b'],
+                'timeSpent': 30,
+                'confidence': 0.9,
+                'changeCount': 0
+            },
+            {
+                'questionId': 'question_003',
+                'textAnswer': 'Supervised learning uses labeled training data to learn patterns, while unsupervised learning finds patterns in unlabeled data.',
+                'timeSpent': 120,
+                'confidence': 0.7,
+                'changeCount': 2
+            }
+        ],
+        'sessionInfo': {
+            'startedAt': '2025-07-01T10:00:00Z',
+            'completedAt': '2025-07-01T10:25:30Z',
+            'totalDuration': 1530,
+            'browserInfo': 'Chrome 91.0',
+            'platform': 'web'
+        }
+    }
+)
+
+submission_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `learnerId` | string | Yes | Unique identifier for the learner |
+| `sessionId` | string | Yes | Unique session identifier |
+| `responses` | array | Yes | Array of question responses |
+| `sessionInfo` | object | Yes | Session timing and context information |
+| `learnerContext` | object | No | Additional learner context for personalization |
+
+#### Response Object
+
+```json
+{
+  "questionId": "string",
+  "selectedAnswers": ["string"],     // For MC, T/F, fill-in-blank
+  "textAnswer": "string",           // For short answer questions
+  "timeSpent": 45,                  // Seconds spent on this question
+  "confidence": 0.8,                // Learner's confidence (0-1)
+  "changeCount": 1,                 // Number of times answer was changed
+  "hintsUsed": ["hint_id"],         // Hints accessed during answering
+  "metadata": {
+    "answeredAt": "2025-07-01T10:05:30Z",
+    "deviceType": "desktop",
+    "inputMethod": "mouse"
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "attemptId": "attempt_xyz789",
+    "quizId": "published_quiz_789",
+    "learnerId": "learner_123",
+    "submissionStatus": "processing",
+    "workflowInfo": {
+      "workflowId": "wf_scoring_456",
+      "workflowType": "results_analysis",
+      "estimatedCompletion": "2025-07-01T10:27:00Z"
+    },
+    "scoringProgress": {
+      "currentPhase": "automated_scoring",
+      "completedPhases": ["response_validation"],
+      "totalPhases": 5,
+      "progressPercentage": 20,
+      "questionsScored": 2,
+      "questionsRemaining": 8,
+      "aiScoringRequired": 1
+    },
+    "preliminary": {
+      "estimatedScore": 75,
+      "confidence": 0.6,
+      "completionTime": 1530,
+      "questionsAnswered": 10,
+      "questionsCorrect": 7
+    }
+  }
+}
+```
+
+## Get Quiz Results
+
+Retrieve comprehensive results and analysis for a quiz attempt.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/results/attempt_xyz789?includeRecommendations=true&includeComparisons=true" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  includeRecommendations: 'true',
+  includeComparisons: 'true'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/results/attempt_xyz789?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const results = await response.json();
+```
+
+```python python
+params = {
+    'includeRecommendations': 'true',
+    'includeComparisons': 'true'
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/results/attempt_xyz789',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+results = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `includeRecommendations` | boolean | Include personalized learning recommendations |
+| `includeComparisons` | boolean | Include performance comparisons and benchmarks |
+| `includeDetailedScoring` | boolean | Include detailed scoring breakdown |
+| `includeInsights` | boolean | Include learning insights and analysis |
+| `format` | string | Response format: `full`, `summary`, `learner_friendly` |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "attemptId": "attempt_xyz789",
+    "quizId": "published_quiz_789",
+    "learnerId": "learner_123",
+    "resultsId": "results_abc123",
+    
+    "overallPerformance": {
+      "totalScore": 78,
+      "maxPossible": 100,
+      "percentage": 78,
+      "passingStatus": "passed",
+      "completionTime": 1530,
+      "questionsAnswered": 10,
+      "questionsCorrect": 7,
+      "questionsPartialCredit": 1
+    },
+    
+    "scoring": {
+      "breakdown": {
+        "byQuestionType": [
+          {
+            "type": "multiple_choice",
+            "score": 80,
+            "questionsAnswered": 6,
+            "questionsCorrect": 5,
+            "averageTime": 42
+          },
+          {
+            "type": "true_false",
+            "score": 100,
+            "questionsAnswered": 2,
+            "questionsCorrect": 2,
+            "averageTime": 25
+          },
+          {
+            "type": "short_answer",
+            "score": 65,
+            "questionsAnswered": 2,
+            "questionsCorrect": 1,
+            "averageTime": 105,
+            "partialCreditAwarded": 1
+          }
+        ],
+        "byTopic": [
+          {
+            "topicId": "topic_ml_basics",
+            "topicName": "Machine Learning Basics",
+            "score": 85,
+            "questionsAnswered": 6,
+            "questionsCorrect": 5,
+            "confidence": 0.82,
+            "masteryLevel": "proficient"
+          },
+          {
+            "topicId": "topic_algorithms",
+            "topicName": "ML Algorithms",
+            "score": 67,
+            "questionsAnswered": 4,
+            "questionsCorrect": 2,
+            "confidence": 0.65,
+            "masteryLevel": "developing"
+          }
+        ],
+        "byDifficulty": [
+          {
+            "difficulty": "easy",
+            "score": 100,
+            "questionsAnswered": 3,
+            "questionsCorrect": 3
+          },
+          {
+            "difficulty": "medium",
+            "score": 80,
+            "questionsAnswered": 5,
+            "questionsCorrect": 4
+          },
+          {
+            "difficulty": "hard",
+            "score": 50,
+            "questionsAnswered": 2,
+            "questionsCorrect": 1
+          }
+        ]
+      },
+      "reliability": {
+        "confidence": 0.87,
+        "scoringMethod": {
+          "automated": 8,
+          "aiAssisted": 2,
+          "humanReviewed": 0
+        }
+      }
+    },
+    
+    "analysis": {
+      "performancePatterns": [
+        {
+          "pattern": "strong_conceptual_understanding",
+          "confidence": 0.85,
+          "evidence": ["Correct answers on foundational concepts", "Good performance on definition questions"]
+        },
+        {
+          "pattern": "struggles_with_application",
+          "confidence": 0.72,
+          "evidence": ["Lower scores on practical application questions", "Longer time on problem-solving questions"]
+        }
+      ],
+      "learningInsights": [
+        {
+          "type": "strength_area",
+          "title": "Strong Foundation in ML Concepts",
+          "description": "Demonstrates solid understanding of fundamental machine learning concepts",
+          "confidence": 0.88,
+          "supportingEvidence": ["85% on ML basics topic", "Perfect score on definitions"]
+        },
+        {
+          "type": "improvement_area",
+          "title": "Algorithm Implementation Understanding",
+          "description": "Needs more practice with how ML algorithms work in practice",
+          "confidence": 0.75,
+          "supportingEvidence": ["67% on algorithms topic", "Struggled with application questions"]
+        }
+      ],
+      "knowledgeGaps": [
+        {
+          "gapType": "application",
+          "severity": "moderate",
+          "description": "Understanding of how to apply ML algorithms to real problems",
+          "affectedTopics": ["topic_algorithms"],
+          "evidence": ["Incorrect answers on practical application questions"]
+        }
+      ]
+    },
+    
+    "recommendations": [
+      {
+        "type": "focus_learning",
+        "priority": "high",
+        "title": "Deep Dive into Algorithm Applications",
+        "description": "Focus on practical applications of ML algorithms",
+        "reasoning": "Strong conceptual foundation but needs practical application skills",
+        "actions": [
+          {
+            "action": "Complete hands-on algorithm tutorials",
+            "estimatedTime": 180,
+            "resources": [
+              {
+                "type": "tutorial",
+                "title": "ML Algorithms in Practice",
+                "url": "https://example.com/tutorial"
+              }
+            ]
+          }
+        ],
+        "successCriteria": ["Can implement basic ML algorithms", "Scores >80% on algorithm application questions"]
+      },
+      {
+        "type": "skip_content",
+        "priority": "medium",
+        "title": "Skip Basic ML Concepts Review",
+        "description": "You can skip review of fundamental ML concepts",
+        "reasoning": "Demonstrated mastery with 85% performance on basics",
+        "estimatedTimeSaved": 120
+      }
+    ],
+    
+    "comparisons": {
+      "benchmarks": [
+        {
+          "category": "all_learners",
+          "percentileRank": 72,
+          "averageScore": 71.2,
+          "sampleSize": 1247,
+          "interpretation": "Above average performance"
+        },
+        {
+          "category": "similar_background",
+          "percentileRank": 65,
+          "averageScore": 74.1,
+          "sampleSize": 89,
+          "interpretation": "Slightly below average for similar learners"
+        }
+      ]
+    },
+    
+    "feedback": {
+      "overall": "Excellent work! You have a strong foundation in machine learning concepts. Focus on practical applications to complete your understanding.",
+      "strengthsHighlighted": [
+        "Clear understanding of supervised vs unsupervised learning",
+        "Good grasp of fundamental terminology",
+        "Efficient completion time shows confidence"
+      ],
+      "improvementAreas": [
+        "Practice with algorithm implementation",
+        "Work on applying concepts to real-world scenarios"
+      ],
+      "nextSteps": [
+        "Begin intermediate algorithm tutorials",
+        "Practice with coding implementations",
+        "Take on a small ML project"
+      ]
+    }
+  }
+}
+```
+
+## Get Learner Dashboard
+
+Retrieve comprehensive learning analytics and progress for a learner.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/learners/learner_123/dashboard?timeframe=last_30_days" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  timeframe: 'last_30_days'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/learners/learner_123/dashboard?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const dashboard = await response.json();
+```
+
+```python python
+params = {'timeframe': 'last_30_days'}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/learners/learner_123/dashboard',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+dashboard = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `timeframe` | string | Time period: `last_7_days`, `last_30_days`, `last_90_days`, `all_time` |
+| `includeRecommendations` | boolean | Include active learning recommendations |
+| `includeTrends` | boolean | Include performance trends and analytics |
+| `includeGoals` | boolean | Include learning goals and progress |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "learnerId": "learner_123",
+    "timeframe": {
+      "start": "2025-06-01T00:00:00Z",
+      "end": "2025-07-01T00:00:00Z",
+      "days": 30
+    },
+    
+    "overview": {
+      "quizzesCompleted": 12,
+      "averageScore": 76.8,
+      "totalTimeSpent": 720,
+      "streakDays": 5,
+      "improvementRate": 8.5,
+      "masteredTopics": 8,
+      "inProgressTopics": 3
+    },
+    
+    "recentActivity": [
+      {
+        "attemptId": "attempt_xyz789",
+        "quizTitle": "Machine Learning Fundamentals",
+        "completedAt": "2025-07-01T10:25:30Z",
+        "score": 78,
+        "duration": 1530,
+        "improvement": "+12 points from previous attempt"
+      }
+    ],
+    
+    "topicMastery": [
+      {
+        "topicId": "topic_ml_basics",
+        "topicName": "Machine Learning Basics",
+        "masteryLevel": "proficient",
+        "confidence": 0.85,
+        "quizzesCompleted": 3,
+        "averageScore": 82,
+        "trend": "improving",
+        "lastActivity": "2025-07-01T10:25:30Z"
+      },
+      {
+        "topicId": "topic_algorithms",
+        "topicName": "ML Algorithms",
+        "masteryLevel": "developing",
+        "confidence": 0.65,
+        "quizzesCompleted": 2,
+        "averageScore": 68,
+        "trend": "stable",
+        "lastActivity": "2025-06-28T14:15:00Z"
+      }
+    ],
+    
+    "performanceTrends": {
+      "scoreProgression": [
+        {"date": "2025-06-01", "averageScore": 65},
+        {"date": "2025-06-15", "averageScore": 71},
+        {"date": "2025-07-01", "averageScore": 77}
+      ],
+      "timeEfficiency": [
+        {"date": "2025-06-01", "averageTimePerQuestion": 85},
+        {"date": "2025-06-15", "averageTimePerQuestion": 78},
+        {"date": "2025-07-01", "averageTimePerQuestion": 65}
+      ],
+      "confidenceGrowth": [
+        {"date": "2025-06-01", "averageConfidence": 0.62},
+        {"date": "2025-06-15", "averageConfidence": 0.71},
+        {"date": "2025-07-01", "averageConfidence": 0.78}
+      ]
+    },
+    
+    "activeRecommendations": [
+      {
+        "recommendationId": "rec_focus_algorithms",
+        "type": "focus_learning",
+        "priority": "high",
+        "title": "Master Algorithm Applications",
+        "progress": 0.3,
+        "dueDate": "2025-07-15T00:00:00Z"
+      }
+    ],
+    
+    "achievements": [
+      {
+        "achievementId": "first_perfect_score",
+        "title": "Perfect Score",
+        "description": "Achieved 100% on a quiz",
+        "earnedAt": "2025-06-25T16:30:00Z",
+        "category": "performance"
+      },
+      {
+        "achievementId": "consistent_learner",
+        "title": "5-Day Streak",
+        "description": "Completed quizzes 5 days in a row",
+        "earnedAt": "2025-07-01T10:25:30Z",
+        "category": "engagement"
+      }
+    ],
+    
+    "insights": [
+      {
+        "type": "learning_pattern",
+        "title": "Peak Performance Time",
+        "description": "You perform best on quizzes taken between 10-11 AM",
+        "confidence": 0.78,
+        "actionable": true,
+        "suggestion": "Schedule important quizzes during your peak performance window"
+      }
+    ]
+  }
+}
+```
+
+## List Quiz Attempts
+
+Retrieve quiz attempts for a learner or quiz with filtering options.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/results/attempts?learnerId=learner_123&quizId=published_quiz_789&limit=20" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  learnerId: 'learner_123',
+  quizId: 'published_quiz_789',
+  limit: '20'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/results/attempts?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const attempts = await response.json();
+```
+
+```python python
+params = {
+    'learnerId': 'learner_123',
+    'quizId': 'published_quiz_789',
+    'limit': 20
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/results/attempts',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+attempts = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `learnerId` | string | Filter by specific learner |
+| `quizId` | string | Filter by specific quiz |
+| `status` | string | Filter by attempt status: `completed`, `in_progress`, `abandoned` |
+| `scoreRange` | string | Filter by score range: `0-59`, `60-79`, `80-100` |
+| `completedAfter` | string | ISO 8601 timestamp |
+| `completedBefore` | string | ISO 8601 timestamp |
+| `includeAbandoned` | boolean | Include incomplete attempts |
+| `limit` | integer | Results per page (max 100, default 20) |
+| `offset` | integer | Pagination offset |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "attemptId": "attempt_xyz789",
+      "quizId": "published_quiz_789",
+      "quizTitle": "Machine Learning Fundamentals",
+      "learnerId": "learner_123",
+      "learnerName": "John Doe",
+      "score": 78,
+      "maxPossible": 100,
+      "percentage": 78,
+      "completedAt": "2025-07-01T10:25:30Z",
+      "duration": 1530,
+      "attemptNumber": 2,
+      "passed": true,
+      "topPerformingTopic": "Machine Learning Basics",
+      "improvementFromPrevious": 12
+    }
+  ],
+  "pagination": {
+    "total": 234,
+    "limit": 20,
+    "offset": 0,
+    "hasNext": true,
+    "hasPrevious": false
+  },
+  "summary": {
+    "totalAttempts": 234,
+    "averageScore": 74.2,
+    "passRate": 78.6,
+    "averageDuration": 1425,
+    "retakeRate": 23.5
+  }
+}
+```
+
+## Generate Recommendations
+
+Generate or update personalized learning recommendations for a learner.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/learners/learner_123/recommendations/generate" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scope": "comprehensive",
+    "includeAttempts": ["attempt_xyz789", "attempt_abc456"],
+    "learningGoals": ["master_ml_algorithms", "prepare_for_certification"],
+    "timeConstraints": {
+      "dailyStudyTime": 60,
+      "targetCompletionDate": "2025-08-15T00:00:00Z"
+    },
+    "preferences": {
+      "learningStyle": "practical",
+      "difficultyPreference": "progressive",
+      "contentTypes": ["tutorial", "practice", "project"]
+    }
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/learners/learner_123/recommendations/generate', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    scope: 'comprehensive',
+    includeAttempts: ['attempt_xyz789', 'attempt_abc456'],
+    learningGoals: ['master_ml_algorithms', 'prepare_for_certification'],
+    timeConstraints: {
+      dailyStudyTime: 60,
+      targetCompletionDate: '2025-08-15T00:00:00Z'
+    },
+    preferences: {
+      learningStyle: 'practical',
+      difficultyPreference: 'progressive',
+      contentTypes: ['tutorial', 'practice', 'project']
+    }
+  })
+});
+
+const recommendations = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/learners/learner_123/recommendations/generate',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'scope': 'comprehensive',
+        'includeAttempts': ['attempt_xyz789', 'attempt_abc456'],
+        'learningGoals': ['master_ml_algorithms', 'prepare_for_certification'],
+        'timeConstraints': {
+            'dailyStudyTime': 60,
+            'targetCompletionDate': '2025-08-15T00:00:00Z'
+        },
+        'preferences': {
+            'learningStyle': 'practical',
+            'difficultyPreference': 'progressive',
+            'contentTypes': ['tutorial', 'practice', 'project']
+        }
+    }
+)
+
+recommendations = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `scope` | string | Yes | Recommendation scope: `single_quiz`, `topic_focused`, `comprehensive` |
+| `includeAttempts` | array | No | Specific attempts to include in analysis |
+| `learningGoals` | array | No | Learner's stated learning goals |
+| `timeConstraints` | object | No | Time availability and deadlines |
+| `preferences` | object | No | Learning style and content preferences |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "learnerId": "learner_123",
+    "recommendationId": "rec_comprehensive_456",
+    "generatedAt": "2025-07-01T11:00:00Z",
+    "scope": "comprehensive",
+    "analysisBase": {
+      "attemptsAnalyzed": 5,
+      "topicsAssessed": 8,
+      "performanceWindow": "last_30_days",
+      "confidence": 0.87
+    },
+    
+    "recommendations": [
+      {
+        "id": "rec_focus_algorithms",
+        "type": "focus_learning",
+        "priority": "high",
+        "title": "Master ML Algorithm Applications",
+        "description": "Deepen understanding of how machine learning algorithms work in practice",
+        "reasoning": "Strong conceptual foundation but gap in practical application skills",
+        "estimatedTime": 8,
+        "targetCompletion": "2025-07-15T00:00:00Z",
+        
+        "actions": [
+          {
+            "actionId": "action_001",
+            "type": "tutorial",
+            "title": "Complete Decision Tree Implementation Tutorial",
+            "estimatedTime": 180,
+            "difficulty": "intermediate",
+            "order": 1,
+            "resources": [
+              {
+                "type": "video",
+                "title": "Decision Trees from Scratch",
+                "url": "https://example.com/tutorial/decision-trees",
+                "duration": 120
+              }
+            ]
+          },
+          {
+            "actionId": "action_002",
+            "type": "practice",
+            "title": "Implement 3 different ML algorithms",
+            "estimatedTime": 300,
+            "difficulty": "intermediate",
+            "order": 2,
+            "successCriteria": ["Working implementation", "Accuracy >75%", "Code review passed"]
+          }
+        ],
+        
+        "successMetrics": {
+          "primaryGoal": "Score >85% on algorithm application quiz",
+          "secondaryGoals": ["Complete implementation projects", "Peer review approval"],
+          "tracking": "Weekly progress check-ins"
+        }
+      },
+      
+      {
+        "id": "rec_skip_basics",
+        "type": "skip_content",
+        "priority": "medium", 
+        "title": "Skip ML Fundamentals Review",
+        "description": "You can safely skip basic ML concept reviews",
+        "reasoning": "Demonstrated mastery with consistent 85%+ scores on fundamental concepts",
+        "estimatedTimeSaved": 240,
+        "confidence": 0.91,
+        "conditions": ["Maintain >80% on fundamental quizzes", "Complete advanced topics first"]
+      }
+    ],
+    
+    "studyPlan": {
+      "totalEstimatedTime": 12,
+      "targetCompletion": "2025-08-15T00:00:00Z",
+      "weeklySchedule": [
+        {
+          "week": 1,
+          "focus": "Algorithm Theory Deep Dive",
+          "timeAllocation": 4,
+          "milestones": ["Complete decision tree tutorial", "Understand ensemble methods"]
+        },
+        {
+          "week": 2,
+          "focus": "Practical Implementation",
+          "timeAllocation": 5,
+          "milestones": ["Implement 2 algorithms", "Pass code review"]
+        }
+      ],
+      "checkpoints": [
+        {
+          "date": "2025-07-08T00:00:00Z",
+          "milestone": "Complete foundational algorithm tutorials",
+          "assessmentMethod": "Practice quiz on algorithm concepts"
+        },
+        {
+          "date": "2025-07-15T00:00:00Z",
+          "milestone": "Demonstrate practical implementation skills",
+          "assessmentMethod": "Code review and project presentation"
+        }
+      ]
+    },
+    
+    "insights": [
+      {
+        "type": "learning_strength",
+        "title": "Strong Conceptual Learner",
+        "description": "You excel at understanding theoretical concepts and definitions",
+        "confidence": 0.89,
+        "implications": ["Focus on applying concepts to build practical skills", "Use your conceptual strength as foundation for advanced topics"]
+      }
+    ]
+  }
+}
+```
+
+## Analytics and Reporting
+
+### Quiz Performance Analytics
+
+Get detailed analytics for quiz performance across learners.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/analytics/quiz/published_quiz_789?timeframe=last_30_days&groupBy=demographic" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+</CodeGroup>
+
+### Learner Cohort Analysis
+
+Analyze performance across learner cohorts and segments.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/analytics/cohorts?segment=experience_level&timeframe=last_90_days" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+</CodeGroup>
+
+### Content Effectiveness Analysis
+
+Analyze how well content translates to quiz performance.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/analytics/content-effectiveness/content_123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+</CodeGroup>
+
+## Export Results
+
+Export quiz results and analytics in various formats.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/results/export" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "exportScope": "quiz",
+    "quizId": "published_quiz_789",
+    "timeframe": {
+      "start": "2025-06-01T00:00:00Z",
+      "end": "2025-07-01T00:00:00Z"
+    },
+    "format": "csv",
+    "includeFields": [
+      "learner_id",
+      "score",
+      "completion_time",
+      "topic_scores",
+      "recommendations"
+    ],
+    "anonymize": true
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/results/export', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    exportScope: 'quiz',
+    quizId: 'published_quiz_789',
+    timeframe: {
+      start: '2025-06-01T00:00:00Z',
+      end: '2025-07-01T00:00:00Z'
+    },
+    format: 'csv',
+    includeFields: [
+      'learner_id',
+      'score', 
+      'completion_time',
+      'topic_scores',
+      'recommendations'
+    ],
+    anonymize: true
+  })
+});
+
+const exportResult = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/results/export',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'exportScope': 'quiz',
+        'quizId': 'published_quiz_789',
+        'timeframe': {
+            'start': '2025-06-01T00:00:00Z',
+            'end': '2025-07-01T00:00:00Z'
+        },
+        'format': 'csv',
+        'includeFields': [
+            'learner_id',
+            'score',
+            'completion_time', 
+            'topic_scores',
+            'recommendations'
+        ],
+        'anonymize': True
+    }
+)
+
+export_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `exportScope` | string | Yes | Export scope: `quiz`, `learner`, `topic`, `global` |
+| `quizId` | string | Conditional | Required for quiz scope |
+| `learnerId` | string | Conditional | Required for learner scope |
+| `timeframe` | object | Yes | Time range for export |
+| `format` | string | Yes | Export format: `csv`, `json`, `xlsx` |
+| `includeFields` | array | Yes | Fields to include in export |
+| `anonymize` | boolean | No | Whether to anonymize learner data |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "exportId": "export_abc123",
+    "status": "processing",
+    "estimatedCompletion": "2025-07-01T11:05:00Z",
+    "exportInfo": {
+      "scope": "quiz",
+      "quizId": "published_quiz_789",
+      "recordCount": 1247,
+      "format": "csv",
+      "anonymized": true
+    },
+    "progress": {
+      "currentPhase": "data_extraction",
+      "progressPercentage": 25
+    }
+  }
+}
+```
+
+## Error Codes
+
+| Error Code | Description | Resolution |
+|------------|-------------|------------|
+| `ATTEMPT_NOT_FOUND` | Quiz attempt ID does not exist | Check attempt ID |
+| `LEARNER_NOT_FOUND` | Learner ID does not exist | Check learner ID |
+| `QUIZ_NOT_PUBLISHED` | Quiz not available for submission | Check quiz publication status |
+| `INVALID_RESPONSES` | Response format invalid | Check response structure |
+| `SCORING_FAILED` | Scoring process failed | Check scoring logs and retry |
+| `INSUFFICIENT_DATA` | Not enough data for recommendations | Complete more quizzes |
+| `EXPORT_FAILED` | Data export failed | Check export parameters |
+| `UNAUTHORIZED_ACCESS` | No permission to access results | Check access permissions |
+
+## Best Practices
+
+### Response Submission
+
+1. **Validate responses client-side** - Check required fields before submission
+2. **Include timing data** - Accurate timing helps with analysis
+3. **Handle network issues** - Implement retry logic for submissions
+4. **Collect learner context** - More context enables better recommendations
+
+### Results Analysis
+
+```javascript
+// Example: Comprehensive results analysis workflow
+async function analyzeQuizPerformance(attemptId) {
+  try {
+    // 1. Get detailed results
+    const results = await getQuizResults(attemptId, {
+      includeRecommendations: true,
+      includeComparisons: true,
+      includeInsights: true
+    });
+    
+    // 2. Extract key insights
+    const insights = {
+      overallPerformance: results.overallPerformance.percentage,
+      strongestTopic: results.scoring.breakdown.byTopic
+        .sort((a, b) => b.score - a.score)[0],
+      weakestTopic: results.scoring.breakdown.byTopic
+        .sort((a, b) => a.score - b.score)[0],
+      timeEfficiency: results.overallPerformance.completionTime / results.overallPerformance.questionsAnswered
+    };
+    
+    // 3. Generate learner-friendly summary
+    const summary = generateLearnerSummary(results, insights);
+    
+    // 4. Update learner progress tracking
+    await updateLearnerProgress(results.learnerId, insights);
+    
+    return { results, insights, summary };
+    
+  } catch (error) {
+    console.error('Results analysis failed:', error);
+    throw error;
+  }
+}
+```
+
+### Recommendation Systems
+
+1. **Personalize based on learning patterns** - Use performance data to tailor recommendations
+2. **Consider learner goals** - Align recommendations with stated objectives
+3. **Balance challenge and achievability** - Ensure recommendations are appropriately challenging
+4. **Track recommendation effectiveness** - Monitor whether learners follow and benefit from recommendations
+
+### Performance Optimization
+
+1. **Cache frequent queries** - Cache learner dashboards and analytics
+2. **Batch scoring operations** - Process multiple responses together when possible
+3. **Use appropriate detail levels** - Request only needed data in API calls
+4. **Monitor scoring agent performance** - Track and optimize AI-assisted scoring
+
+## Related Documentation
+
+- [Quiz Generation](/api-reference/quiz-generation) - Generate quizzes that feed into results processing
+- [Workflow Management](/api-reference/workflows) - Orchestrate scoring and analysis workflows
+- [Results Schema](/technical/data-models/results-schema) - Results data structures and relationships
+- [Agent Monitoring](/api-reference/agent-monitoring) - Monitor scoring agent performance

@@ -1,0 +1,1059 @@
+---
+title: Quiz Generation
+description: APIs for generating quizzes through coordinated AI agents and managing the review process
+---
+
+# Quiz Generation APIs
+
+The quiz generation APIs coordinate multiple specialized AI agents to create quizzes from processed content. These endpoints work with the Quiz Orchestrator to manage question generation agents and the human-in-the-loop review process.
+
+<Callout type="info">
+  **Architecture Context**: These APIs trigger quiz generation workflows that coordinate Multiple Choice, True/False, Fill-in-Blank, and Short Answer agents. The Quiz Orchestrator ensures balanced question distribution and quality. See [Workflow Management](/api-reference/workflows) for orchestration details.
+</Callout>
+
+## Generate Quiz
+
+Create a new quiz from processed content using AI agents.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/quizzes/generate" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contentId": "content_123",
+    "configuration": {
+      "questionCount": 10,
+      "questionTypes": [
+        {"type": "multiple_choice", "count": 5, "priority": "required"},
+        {"type": "true_false", "count": 3, "priority": "preferred"},
+        {"type": "short_answer", "count": 2, "priority": "optional"}
+      ],
+      "difficultyDistribution": {
+        "easy": 3,
+        "medium": 5,
+        "hard": 2
+      },
+      "topicFocus": ["topic_ml_basics", "topic_algorithms"],
+      "timeLimit": 30
+    },
+    "reviewConfiguration": {
+      "assignedReviewers": ["reviewer_001", "reviewer_002"],
+      "reviewDeadline": "2025-07-15T10:00:00Z",
+      "reviewInstructions": "Focus on question clarity and accuracy"
+    }
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/quizzes/generate', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    contentId: 'content_123',
+    configuration: {
+      questionCount: 10,
+      questionTypes: [
+        {type: 'multiple_choice', count: 5, priority: 'required'},
+        {type: 'true_false', count: 3, priority: 'preferred'},
+        {type: 'short_answer', count: 2, priority: 'optional'}
+      ],
+      difficultyDistribution: {
+        easy: 3,
+        medium: 5,
+        hard: 2
+      },
+      topicFocus: ['topic_ml_basics', 'topic_algorithms'],
+      timeLimit: 30
+    },
+    reviewConfiguration: {
+      assignedReviewers: ['reviewer_001', 'reviewer_002'],
+      reviewDeadline: '2025-07-15T10:00:00Z',
+      reviewInstructions: 'Focus on question clarity and accuracy'
+    }
+  })
+});
+
+const quizGeneration = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/quizzes/generate',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'contentId': 'content_123',
+        'configuration': {
+            'questionCount': 10,
+            'questionTypes': [
+                {'type': 'multiple_choice', 'count': 5, 'priority': 'required'},
+                {'type': 'true_false', 'count': 3, 'priority': 'preferred'},
+                {'type': 'short_answer', 'count': 2, 'priority': 'optional'}
+            ],
+            'difficultyDistribution': {
+                'easy': 3,
+                'medium': 5,
+                'hard': 2
+            },
+            'topicFocus': ['topic_ml_basics', 'topic_algorithms'],
+            'timeLimit': 30
+        },
+        'reviewConfiguration': {
+            'assignedReviewers': ['reviewer_001', 'reviewer_002'],
+            'reviewDeadline': '2025-07-15T10:00:00Z',
+            'reviewInstructions': 'Focus on question clarity and accuracy'
+        }
+    }
+)
+
+quiz_generation = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `contentId` | string | Yes | ID of processed content to generate quiz from |
+| `configuration` | object | Yes | Quiz generation configuration |
+| `reviewConfiguration` | object | No | Human review process configuration |
+| `metadata` | object | No | Additional quiz metadata |
+
+#### Configuration Object
+
+```json
+{
+  "questionCount": 10,
+  "questionTypes": [
+    {
+      "type": "multiple_choice|true_false|fill_blank|short_answer",
+      "count": 5,
+      "percentage": 50,
+      "priority": "required|preferred|optional"
+    }
+  ],
+  "difficultyDistribution": {
+    "easy": 3,
+    "medium": 5, 
+    "hard": 2
+  },
+  "topicFocus": ["topic_id_1", "topic_id_2"],
+  "topicWeights": [
+    {"topicId": "topic_ml_basics", "weight": 0.6},
+    {"topicId": "topic_algorithms", "weight": 0.4}
+  ],
+  "timeLimit": 30,
+  "behaviorSettings": {
+    "allowReview": true,
+    "allowRetake": true,
+    "maxAttempts": 3,
+    "showCorrectAnswers": true,
+    "showExplanations": true,
+    "randomizeQuestions": true,
+    "randomizeAnswers": true
+  },
+  "agentConfiguration": {
+    "creativityLevel": 0.7,
+    "diversityTarget": 0.8,
+    "qualityThreshold": 0.85,
+    "generateAlternatives": 3
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "quizId": "quiz_456",
+    "status": "generating",
+    "workflowInfo": {
+      "workflowId": "wf_quiz_789",
+      "workflowType": "quiz_generation",
+      "estimatedDuration": 450,
+      "queuePosition": 1
+    },
+    "generationProgress": {
+      "currentPhase": "agent_coordination",
+      "completedPhases": ["content_analysis", "question_planning"],
+      "totalPhases": 6,
+      "progressPercentage": 33,
+      "agentStatus": [
+        {
+          "agentType": "multiple_choice",
+          "status": "running",
+          "questionsAssigned": 5,
+          "questionsGenerated": 2,
+          "estimatedCompletion": "2025-07-01T10:05:00Z"
+        },
+        {
+          "agentType": "true_false",
+          "status": "pending",
+          "questionsAssigned": 3,
+          "questionsGenerated": 0,
+          "estimatedCompletion": "2025-07-01T10:07:00Z"
+        }
+      ]
+    },
+    "contentInfo": {
+      "contentId": "content_123",
+      "title": "Machine Learning Guide",
+      "topicsAvailable": 12,
+      "estimatedQuestions": 15,
+      "contentQuality": 92
+    },
+    "reviewInfo": {
+      "reviewRequired": true,
+      "assignedReviewers": ["reviewer_001", "reviewer_002"],
+      "reviewDeadline": "2025-07-15T10:00:00Z",
+      "estimatedReviewTime": 2
+    }
+  }
+}
+```
+
+## Get Quiz Status
+
+Retrieve the current status and progress of quiz generation.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const quizStatus = await response.json();
+```
+
+```python python
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}
+)
+
+quiz_status = response.json()
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "quizId": "quiz_456",
+    "status": "review_pending",
+    "contentId": "content_123",
+    "metadata": {
+      "title": "Machine Learning Fundamentals Quiz",
+      "description": "Test your understanding of basic ML concepts",
+      "estimatedDuration": 30,
+      "difficulty": "intermediate",
+      "createdAt": "2025-07-01T10:00:00Z",
+      "lastModified": "2025-07-01T10:07:30Z"
+    },
+    "configuration": {
+      "questionCount": 10,
+      "actualQuestionCount": 10,
+      "questionTypes": [
+        {"type": "multiple_choice", "requested": 5, "generated": 5},
+        {"type": "true_false", "requested": 3, "generated": 3},
+        {"type": "short_answer", "requested": 2, "generated": 2}
+      ],
+      "difficultyDistribution": {
+        "easy": {"requested": 3, "generated": 3},
+        "medium": {"requested": 5, "generated": 5},
+        "hard": {"requested": 2, "generated": 2}
+      }
+    },
+    "generation": {
+      "workflowId": "wf_quiz_789",
+      "generatedAt": "2025-07-01T10:07:30Z",
+      "generationDuration": 450,
+      "agentResults": [
+        {
+          "agentType": "multiple_choice",
+          "questionsGenerated": 5,
+          "processingTime": 180,
+          "averageConfidence": 0.89,
+          "qualityScore": 87
+        },
+        {
+          "agentType": "true_false",
+          "questionsGenerated": 3,
+          "processingTime": 120,
+          "averageConfidence": 0.92,
+          "qualityScore": 91
+        },
+        {
+          "agentType": "short_answer",
+          "questionsGenerated": 2,
+          "processingTime": 150,
+          "averageConfidence": 0.84,
+          "qualityScore": 83
+        }
+      ],
+      "overallQuality": {
+        "qualityScore": 87,
+        "contentAlignment": 92,
+        "difficultyBalance": 85,
+        "topicCoverage": 90,
+        "questionVariety": 82
+      }
+    },
+    "review": {
+      "status": "pending_review",
+      "assignedReviewers": [
+        {
+          "reviewerId": "reviewer_001",
+          "reviewerName": "Dr. Alice Johnson",
+          "role": "subject_expert",
+          "assignedAt": "2025-07-01T10:07:30Z",
+          "questionsAssigned": 5,
+          "status": "assigned"
+        },
+        {
+          "reviewerId": "reviewer_002", 
+          "reviewerName": "Prof. Bob Smith",
+          "role": "instructional_designer",
+          "assignedAt": "2025-07-01T10:07:30Z",
+          "questionsAssigned": 5,
+          "status": "assigned"
+        }
+      ],
+      "deadline": "2025-07-15T10:00:00Z",
+      "questionsReviewed": 0,
+      "questionsApproved": 0,
+      "questionsNeedingRevision": 0,
+      "overallProgress": 0
+    },
+    "readyForPublication": false,
+    "nextSteps": ["await_review", "address_feedback", "publish_quiz"]
+  }
+}
+```
+
+## List Quizzes
+
+Retrieve a list of quizzes with filtering and pagination.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/quizzes?status=review_pending&contentId=content_123&limit=20" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  status: 'review_pending',
+  contentId: 'content_123',
+  limit: '20'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/quizzes?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const quizzes = await response.json();
+```
+
+```python python
+params = {
+    'status': 'review_pending',
+    'contentId': 'content_123',
+    'limit': 20
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/quizzes',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+quizzes = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | Filter by quiz status: `generating`, `review_pending`, `approved`, `published`, `archived` |
+| `contentId` | string | Filter by source content ID |
+| `reviewer` | string | Filter by assigned reviewer ID |
+| `difficulty` | string | Filter by difficulty level |
+| `questionCount` | integer | Filter by number of questions |
+| `createdAfter` | string | ISO 8601 timestamp |
+| `createdBefore` | string | ISO 8601 timestamp |
+| `readyForPublication` | boolean | Filter quizzes ready for publication |
+| `limit` | integer | Results per page (max 100, default 20) |
+| `offset` | integer | Pagination offset |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "quizId": "quiz_456",
+      "title": "Machine Learning Fundamentals Quiz",
+      "status": "review_pending",
+      "contentId": "content_123",
+      "questionCount": 10,
+      "difficulty": "intermediate",
+      "createdAt": "2025-07-01T10:00:00Z",
+      "estimatedDuration": 30,
+      "qualityScore": 87,
+      "reviewProgress": 0,
+      "assignedReviewers": 2,
+      "readyForPublication": false
+    }
+  ],
+  "pagination": {
+    "total": 78,
+    "limit": 20,
+    "offset": 0,
+    "hasNext": true,
+    "hasPrevious": false
+  }
+}
+```
+
+## Get Quiz Questions
+
+Retrieve the generated questions for a quiz (requires appropriate permissions).
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/questions?includeAnswers=false" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  includeAnswers: 'false'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/questions?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const questions = await response.json();
+```
+
+```python python
+params = {'includeAnswers': 'false'}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/questions',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+questions = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `includeAnswers` | boolean | Include correct answers (requires reviewer/admin role) |
+| `includeExplanations` | boolean | Include answer explanations |
+| `questionType` | string | Filter by question type |
+| `difficulty` | string | Filter by difficulty level |
+| `topic` | string | Filter by topic ID |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "quizId": "quiz_456",
+    "questions": [
+      {
+        "questionId": "question_001",
+        "type": "multiple_choice",
+        "content": {
+          "text": "What is the primary difference between supervised and unsupervised learning?",
+          "context": "Consider the role of labeled data in each approach."
+        },
+        "answers": [
+          {
+            "answerId": "answer_001_a",
+            "text": "Supervised learning uses labeled data, unsupervised learning does not"
+          },
+          {
+            "answerId": "answer_001_b", 
+            "text": "Supervised learning is faster than unsupervised learning"
+          },
+          {
+            "answerId": "answer_001_c",
+            "text": "Unsupervised learning is more accurate than supervised learning"
+          },
+          {
+            "answerId": "answer_001_d",
+            "text": "There is no significant difference between them"
+          }
+        ],
+        "metadata": {
+          "difficulty": "medium",
+          "estimatedTime": 45,
+          "sourceTopics": ["topic_ml_basics"],
+          "bloomsLevel": "understand",
+          "tags": ["supervised learning", "unsupervised learning"]
+        },
+        "generation": {
+          "agentType": "multiple_choice",
+          "confidence": 0.89,
+          "generatedAt": "2025-07-01T10:03:15Z"
+        },
+        "validation": {
+          "status": "pending_review",
+          "qualityScore": 88,
+          "issues": []
+        }
+      }
+    ],
+    "summary": {
+      "totalQuestions": 10,
+      "byType": {
+        "multiple_choice": 5,
+        "true_false": 3,
+        "short_answer": 2
+      },
+      "byDifficulty": {
+        "easy": 3,
+        "medium": 5,
+        "hard": 2
+      },
+      "averageQualityScore": 87
+    }
+  }
+}
+```
+
+## Update Quiz Configuration
+
+Modify quiz configuration before or after generation.
+
+<CodeGroup>
+```bash curl
+curl -X PUT "https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/configuration" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "metadata": {
+      "title": "Advanced Machine Learning Quiz",
+      "description": "Updated description",
+      "estimatedDuration": 45
+    },
+    "behaviorSettings": {
+      "allowRetake": false,
+      "maxAttempts": 1,
+      "showCorrectAnswers": false
+    },
+    "reason": "Updated based on stakeholder feedback"
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/configuration', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    metadata: {
+      title: 'Advanced Machine Learning Quiz',
+      description: 'Updated description',
+      estimatedDuration: 45
+    },
+    behaviorSettings: {
+      allowRetake: false,
+      maxAttempts: 1,
+      showCorrectAnswers: false
+    },
+    reason: 'Updated based on stakeholder feedback'
+  })
+});
+
+const updateResult = await response.json();
+```
+
+```python python
+response = requests.put(
+    'https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/configuration',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'metadata': {
+            'title': 'Advanced Machine Learning Quiz',
+            'description': 'Updated description',
+            'estimatedDuration': 45
+        },
+        'behaviorSettings': {
+            'allowRetake': False,
+            'maxAttempts': 1,
+            'showCorrectAnswers': False
+        },
+        'reason': 'Updated based on stakeholder feedback'
+    }
+)
+
+update_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `metadata` | object | No | Updated quiz metadata |
+| `behaviorSettings` | object | No | Updated quiz behavior configuration |
+| `timingConfiguration` | object | No | Updated timing settings |
+| `reason` | string | No | Reason for the update |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "quizId": "quiz_456",
+    "updated": true,
+    "updatedAt": "2025-07-01T11:00:00Z",
+    "changes": [
+      {
+        "field": "metadata.title",
+        "oldValue": "Machine Learning Fundamentals Quiz",
+        "newValue": "Advanced Machine Learning Quiz"
+      },
+      {
+        "field": "behaviorSettings.allowRetake",
+        "oldValue": true,
+        "newValue": false
+      }
+    ],
+    "version": {
+      "previousVersion": "1.0.0",
+      "newVersion": "1.1.0"
+    },
+    "impactAssessment": {
+      "affectsPublishedQuiz": false,
+      "requiresReview": false,
+      "breakingChanges": false
+    }
+  }
+}
+```
+
+## Regenerate Questions
+
+Request regeneration of specific questions or question types.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/regenerate" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scope": "specific_questions",
+    "questionIds": ["question_003", "question_007"],
+    "reason": "Questions unclear based on reviewer feedback",
+    "requirements": {
+      "maintainDifficulty": true,
+      "maintainTopics": true,
+      "improveClarity": true
+    },
+    "agentConfiguration": {
+      "creativityLevel": 0.8,
+      "generateAlternatives": 5
+    }
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/regenerate', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    scope: 'specific_questions',
+    questionIds: ['question_003', 'question_007'],
+    reason: 'Questions unclear based on reviewer feedback',
+    requirements: {
+      maintainDifficulty: true,
+      maintainTopics: true,
+      improveClarity: true
+    },
+    agentConfiguration: {
+      creativityLevel: 0.8,
+      generateAlternatives: 5
+    }
+  })
+});
+
+const regenerationResult = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/regenerate',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'scope': 'specific_questions',
+        'questionIds': ['question_003', 'question_007'],
+        'reason': 'Questions unclear based on reviewer feedback',
+        'requirements': {
+            'maintainDifficulty': True,
+            'maintainTopics': True,
+            'improveClarity': True
+        },
+        'agentConfiguration': {
+            'creativityLevel': 0.8,
+            'generateAlternatives': 5
+        }
+    }
+)
+
+regeneration_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `scope` | string | Yes | Regeneration scope: `specific_questions`, `question_type`, `difficulty_level`, `entire_quiz` |
+| `questionIds` | array | Conditional | Required if scope is `specific_questions` |
+| `questionType` | string | Conditional | Required if scope is `question_type` |
+| `difficultyLevel` | string | Conditional | Required if scope is `difficulty_level` |
+| `reason` | string | Yes | Reason for regeneration |
+| `requirements` | object | No | Requirements for regenerated questions |
+| `agentConfiguration` | object | No | Configuration for regeneration agents |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "quizId": "quiz_456",
+    "regenerationId": "regen_abc123",
+    "workflowId": "wf_regen_789",
+    "status": "regenerating",
+    "scope": "specific_questions",
+    "targetQuestions": ["question_003", "question_007"],
+    "estimatedCompletion": "2025-07-01T11:15:00Z",
+    "progress": {
+      "currentPhase": "question_generation",
+      "questionsInProgress": 2,
+      "questionsCompleted": 0,
+      "progressPercentage": 25
+    },
+    "preservedData": {
+      "originalQuestions": true,
+      "reviewComments": true,
+      "questionMetadata": true
+    }
+  }
+}
+```
+
+## Quiz Review Management
+
+### Assign Reviewers
+
+Assign or reassign reviewers to a quiz.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/reviewers" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reviewers": [
+      {
+        "reviewerId": "reviewer_003",
+        "role": "subject_expert",
+        "questionsAssigned": ["question_001", "question_002", "question_003"]
+      },
+      {
+        "reviewerId": "reviewer_004",
+        "role": "instructional_designer", 
+        "questionsAssigned": ["question_004", "question_005"]
+      }
+    ],
+    "deadline": "2025-07-20T10:00:00Z",
+    "instructions": "Please focus on technical accuracy and learner engagement"
+  }'
+```
+</CodeGroup>
+
+### Get Review Status
+
+Check the current review status and progress.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/review" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+</CodeGroup>
+
+### Submit Review
+
+Submit review feedback for assigned questions (reviewer endpoint).
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/review/submit" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "questionReviews": [
+      {
+        "questionId": "question_001",
+        "action": "approve",
+        "comments": "Clear and accurate question",
+        "rating": 9
+      },
+      {
+        "questionId": "question_002",
+        "action": "request_revision",
+        "comments": "Question wording could be clearer",
+        "suggestedChanges": ["Simplify the question text", "Add more context"],
+        "rating": 6
+      }
+    ],
+    "overallFeedback": "Quiz covers topics well but some questions need clarity improvements"
+  }'
+```
+</CodeGroup>
+
+## Publish Quiz
+
+Publish an approved quiz for learner access.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/publish" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "publicationSettings": {
+      "visibility": "public",
+      "accessStartDate": "2025-07-15T00:00:00Z",
+      "accessEndDate": "2025-12-31T23:59:59Z",
+      "allowedGroups": ["group_learners", "group_advanced"]
+    },
+    "deploymentTargets": ["web_platform", "mobile_app"],
+    "releaseNotes": "Initial release of ML fundamentals quiz"
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/publish', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    publicationSettings: {
+      visibility: 'public',
+      accessStartDate: '2025-07-15T00:00:00Z',
+      accessEndDate: '2025-12-31T23:59:59Z',
+      allowedGroups: ['group_learners', 'group_advanced']
+    },
+    deploymentTargets: ['web_platform', 'mobile_app'],
+    releaseNotes: 'Initial release of ML fundamentals quiz'
+  })
+});
+
+const publishResult = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/quizzes/quiz_456/publish',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'publicationSettings': {
+            'visibility': 'public',
+            'accessStartDate': '2025-07-15T00:00:00Z',
+            'accessEndDate': '2025-12-31T23:59:59Z',
+            'allowedGroups': ['group_learners', 'group_advanced']
+        },
+        'deploymentTargets': ['web_platform', 'mobile_app'],
+        'releaseNotes': 'Initial release of ML fundamentals quiz'
+    }
+)
+
+publish_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `publicationSettings` | object | Yes | Publication configuration |
+| `deploymentTargets` | array | No | Target platforms for deployment |
+| `releaseNotes` | string | No | Release notes for this version |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "quizId": "quiz_456",
+    "publishedQuizId": "published_quiz_789",
+    "status": "published",
+    "publishedAt": "2025-07-01T12:00:00Z",
+    "version": "1.0.0",
+    "publication": {
+      "visibility": "public",
+      "accessStartDate": "2025-07-15T00:00:00Z",
+      "accessEndDate": "2025-12-31T23:59:59Z",
+      "deploymentTargets": ["web_platform", "mobile_app"]
+    },
+    "accessUrls": [
+      {
+        "platform": "web_platform",
+        "url": "https://quiz.go1.com/quiz/published_quiz_789"
+      },
+      {
+        "platform": "mobile_app",
+        "deepLink": "go1quiz://quiz/published_quiz_789"
+      }
+    ],
+    "analytics": {
+      "trackingEnabled": true,
+      "analyticsId": "analytics_quiz_789"
+    }
+  }
+}
+```
+
+## Error Codes
+
+| Error Code | Description | Resolution |
+|------------|-------------|------------|
+| `QUIZ_NOT_FOUND` | Quiz ID does not exist | Check quiz ID |
+| `CONTENT_NOT_PROCESSED` | Source content not ready for quiz generation | Complete content processing first |
+| `INSUFFICIENT_CONTENT` | Content quality too low for quiz generation | Improve content quality or use different content |
+| `INVALID_CONFIGURATION` | Quiz configuration invalid | Check configuration parameters |
+| `AGENT_GENERATION_FAILED` | One or more agents failed to generate questions | Check agent status and retry |
+| `REVIEW_NOT_COMPLETE` | Quiz cannot be published without complete review | Complete review process |
+| `REVIEWER_NOT_FOUND` | Assigned reviewer does not exist | Check reviewer ID |
+| `UNAUTHORIZED_REVIEW` | User not authorized to review this quiz | Check reviewer permissions |
+| `PUBLICATION_FAILED` | Quiz publication failed | Check publication settings and retry |
+
+## Best Practices
+
+### Quiz Generation
+
+1. **Validate content quality first** - Ensure content has been processed and meets quality thresholds
+2. **Use balanced question types** - Mix question types for comprehensive assessment
+3. **Set realistic timelines** - Allow adequate time for generation and review
+4. **Monitor agent performance** - Track which agents produce the best results
+
+### Review Management
+
+```javascript
+// Example: Comprehensive quiz generation and review workflow
+async function createAndReviewQuiz(contentId, reviewerIds) {
+  try {
+    // 1. Generate quiz
+    const quiz = await generateQuiz({
+      contentId,
+      configuration: {
+        questionCount: 10,
+        questionTypes: [
+          {type: 'multiple_choice', count: 6, priority: 'required'},
+          {type: 'true_false', count: 2, priority: 'preferred'},
+          {type: 'short_answer', count: 2, priority: 'optional'}
+        ]
+      },
+      reviewConfiguration: {
+        assignedReviewers: reviewerIds,
+        reviewDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+      }
+    });
+    
+    // 2. Monitor generation progress
+    await pollGenerationCompletion(quiz.quizId);
+    
+    // 3. Notify reviewers
+    await notifyReviewers(quiz.quizId, reviewerIds);
+    
+    // 4. Monitor review progress
+    await monitorReviewProgress(quiz.quizId);
+    
+    return quiz;
+    
+  } catch (error) {
+    console.error('Quiz creation failed:', error);
+    throw error;
+  }
+}
+```
+
+### Quality Assurance
+
+1. **Set quality thresholds** - Define minimum quality scores for questions
+2. **Use multiple reviewers** - Have subject experts and instructional designers review
+3. **Track reviewer performance** - Monitor review quality and consistency
+4. **Implement feedback loops** - Use review feedback to improve agent performance
+
+### Performance Optimization
+
+1. **Batch similar requests** - Group similar quiz generation requests
+2. **Cache content analysis** - Reuse content analysis for multiple quizzes
+3. **Optimize agent allocation** - Balance load across different agent types
+4. **Monitor resource usage** - Track agent utilization and scale accordingly
+
+## Related Documentation
+
+- [Workflow Management](/api-reference/workflows) - Workflow orchestration and monitoring
+- [Content Processing](/api-reference/content-processing) - Process content before quiz generation
+- [Results Processing](/api-reference/results-processing) - Handle quiz results and analytics
+- [Quiz Schema](/technical/data-models/quiz-schema) - Quiz data structures and relationships

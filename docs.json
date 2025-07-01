@@ -56,6 +56,36 @@
             "pages": [
               "api-reference/introduction"
             ]
+          },
+          {
+            "group": "Workflow Management",
+            "pages": [
+              "api-reference/workflows"
+            ]
+          },
+          {
+            "group": "Content & Processing",
+            "pages": [
+              "api-reference/content-processing"
+            ]
+          },
+          {
+            "group": "Quiz Management",
+            "pages": [
+              "api-reference/quiz-generation"
+            ]
+          },
+          {
+            "group": "Results & Analytics",
+            "pages": [
+              "api-reference/results-processing"
+            ]
+          },
+          {
+            "group": "System Management",
+            "pages": [
+              "api-reference/agent-monitoring"
+            ]
           }
         ]
       }

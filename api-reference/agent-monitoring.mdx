@@ -1,0 +1,1131 @@
+---
+title: Agent Monitoring
+description: APIs for monitoring AI agent performance, health, and resource management
+---
+
+# Agent Monitoring APIs
+
+The agent monitoring APIs provide visibility into the health, performance, and resource utilization of AI agents in the Dynamic Quiz Creator system. These endpoints help administrators monitor the agent ecosystem and optimize system performance.
+
+<Callout type="info">
+  **Architecture Context**: These APIs provide observability into the containerized AI agents that handle content processing, quiz generation, and scoring. Agents are coordinated by orchestrator services and managed through N8N workflows. See [System Architecture](/technical/architecture/system-overview) for detailed architecture overview.
+</Callout>
+
+## Agent Types Overview
+
+The system includes several types of specialized AI agents:
+
+| Agent Category | Agent Types | Primary Function | Resource Requirements |
+|----------------|-------------|------------------|----------------------|
+| **Content Processing** | PDF Ingestor, HTML Processor, Video Transcript Processor | Extract and normalize content | High CPU, Medium Memory |
+| **Quiz Generation** | Multiple Choice, True/False, Fill-in-Blank, Short Answer | Generate questions from content | High CPU, High Memory |
+| **Scoring & Analysis** | Automated Scorer, AI-Assisted Scorer, Topic Analyzer | Score responses and analyze performance | Medium CPU, Medium Memory |
+| **Orchestration** | Content Orchestrator, Quiz Orchestrator, Scoring Orchestrator | Coordinate agent workflows | Low CPU, Low Memory |
+
+## Get Agent Status
+
+Retrieve current status and health information for all agents or specific agent types.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/agents/status?agentType=pdf_ingestor&includeMetrics=true" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  agentType: 'pdf_ingestor',
+  includeMetrics: 'true'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/agents/status?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const agentStatus = await response.json();
+```
+
+```python python
+params = {
+    'agentType': 'pdf_ingestor',
+    'includeMetrics': 'true'
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/agents/status',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+agent_status = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `agentType` | string | Filter by specific agent type |
+| `status` | string | Filter by agent status: `healthy`, `degraded`, `unhealthy`, `offline` |
+| `includeMetrics` | boolean | Include performance metrics |
+| `includeHistory` | boolean | Include recent status history |
+| `region` | string | Filter by deployment region |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "overview": {
+      "totalAgents": 45,
+      "healthyAgents": 42,
+      "degradedAgents": 2,
+      "unhealthyAgents": 1,
+      "offlineAgents": 0,
+      "lastUpdated": "2025-07-01T10:30:15Z"
+    },
+    "agents": [
+      {
+        "agentId": "pdf-ingestor-001",
+        "agentType": "pdf_ingestor",
+        "version": "1.2.0",
+        "status": "healthy",
+        "health": {
+          "overallHealth": "healthy",
+          "healthScore": 0.95,
+          "lastHealthCheck": "2025-07-01T10:30:00Z",
+          "uptime": 1728000,
+          "checksPassedCount": 47,
+          "checksFailedCount": 1
+        },
+        "deployment": {
+          "region": "us-east-1",
+          "cluster": "production",
+          "node": "worker-node-03",
+          "containerId": "container_abc123",
+          "deployedAt": "2025-06-21T08:00:00Z",
+          "lastRestart": "2025-06-28T14:30:00Z"
+        },
+        "performance": {
+          "currentLoad": 0.65,
+          "averageResponseTime": 2.3,
+          "requestsPerMinute": 12,
+          "successRate": 0.98,
+          "errorRate": 0.02,
+          "queueDepth": 3
+        },
+        "resources": {
+          "cpuUsage": 0.45,
+          "memoryUsage": 0.67,
+          "diskUsage": 0.23,
+          "networkIn": 1.2,
+          "networkOut": 0.8
+        },
+        "capabilities": {
+          "maxConcurrentJobs": 5,
+          "currentJobs": 3,
+          "supportedFormats": ["pdf"],
+          "features": ["ocr", "table_extraction", "image_processing"],
+          "modelVersion": "v2.1",
+          "configurationHash": "sha256:def456..."
+        }
+      }
+    ],
+    "aggregatedMetrics": {
+      "totalRequestsPerMinute": 156,
+      "averageResponseTime": 3.1,
+      "overallSuccessRate": 0.96,
+      "resourceUtilization": {
+        "averageCpuUsage": 0.52,
+        "averageMemoryUsage": 0.68,
+        "peakCpuUsage": 0.89,
+        "peakMemoryUsage": 0.91
+      }
+    }
+  }
+}
+```
+
+## Get Agent Metrics
+
+Retrieve detailed performance metrics for specific agents or agent types.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/metrics?timeframe=last_24_hours&granularity=1h" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  timeframe: 'last_24_hours',
+  granularity: '1h'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/metrics?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const metrics = await response.json();
+```
+
+```python python
+params = {
+    'timeframe': 'last_24_hours',
+    'granularity': '1h'
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/metrics',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+metrics = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `timeframe` | string | Time range: `last_1_hour`, `last_24_hours`, `last_7_days`, `last_30_days`, `custom` |
+| `startTime` | string | Start time for custom timeframe (ISO 8601) |
+| `endTime` | string | End time for custom timeframe (ISO 8601) |
+| `granularity` | string | Data point interval: `1m`, `5m`, `1h`, `1d` |
+| `metrics` | string | Comma-separated list of specific metrics to include |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "agentId": "pdf-ingestor-001",
+    "agentType": "pdf_ingestor",
+    "timeframe": {
+      "start": "2025-06-30T10:30:00Z",
+      "end": "2025-07-01T10:30:00Z",
+      "granularity": "1h"
+    },
+    "metrics": {
+      "performance": {
+        "responseTime": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 2.1},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 2.3},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 1.9}
+        ],
+        "throughput": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 15},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 12},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 18}
+        ],
+        "successRate": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 0.98},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 0.96},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 0.99}
+        ],
+        "errorRate": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 0.02},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 0.04},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 0.01}
+        ]
+      },
+      "resources": {
+        "cpuUsage": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 0.42},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 0.48},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 0.39}
+        ],
+        "memoryUsage": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 0.65},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 0.71},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 0.62}
+        ],
+        "queueDepth": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 2},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 5},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 1}
+        ]
+      },
+      "quality": {
+        "confidenceScore": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 0.89},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 0.91},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 0.88}
+        ],
+        "qualityScore": [
+          {"timestamp": "2025-06-30T10:00:00Z", "value": 87},
+          {"timestamp": "2025-06-30T11:00:00Z", "value": 89},
+          {"timestamp": "2025-06-30T12:00:00Z", "value": 86}
+        ]
+      }
+    },
+    "summary": {
+      "averageResponseTime": 2.1,
+      "peakResponseTime": 3.2,
+      "averageThroughput": 15.2,
+      "peakThroughput": 23,
+      "averageSuccessRate": 0.977,
+      "totalJobsProcessed": 364,
+      "totalErrors": 8,
+      "averageQualityScore": 87.3
+    }
+  }
+}
+```
+
+## Scale Agents
+
+Dynamically scale agent instances based on load or manual configuration.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/agents/scale" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentType": "multiple_choice_generator",
+    "scalingAction": "scale_up",
+    "targetInstances": 8,
+    "reason": "High demand for quiz generation",
+    "scalingPolicy": {
+      "maxInstances": 12,
+      "minInstances": 2,
+      "scaleUpThreshold": 0.8,
+      "scaleDownThreshold": 0.3,
+      "cooldownPeriod": 300
+    }
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/agents/scale', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    agentType: 'multiple_choice_generator',
+    scalingAction: 'scale_up',
+    targetInstances: 8,
+    reason: 'High demand for quiz generation',
+    scalingPolicy: {
+      maxInstances: 12,
+      minInstances: 2,
+      scaleUpThreshold: 0.8,
+      scaleDownThreshold: 0.3,
+      cooldownPeriod: 300
+    }
+  })
+});
+
+const scalingResult = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/agents/scale',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'agentType': 'multiple_choice_generator',
+        'scalingAction': 'scale_up',
+        'targetInstances': 8,
+        'reason': 'High demand for quiz generation',
+        'scalingPolicy': {
+            'maxInstances': 12,
+            'minInstances': 2,
+            'scaleUpThreshold': 0.8,
+            'scaleDownThreshold': 0.3,
+            'cooldownPeriod': 300
+        }
+    }
+)
+
+scaling_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `agentType` | string | Yes | Type of agent to scale |
+| `scalingAction` | string | Yes | Action: `scale_up`, `scale_down`, `auto_scale`, `set_instances` |
+| `targetInstances` | integer | Conditional | Target number of instances (required for `set_instances`) |
+| `reason` | string | No | Reason for scaling operation |
+| `scalingPolicy` | object | No | Automatic scaling configuration |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "scalingOperationId": "scale_op_abc123",
+    "agentType": "multiple_choice_generator",
+    "scalingAction": "scale_up",
+    "currentInstances": 5,
+    "targetInstances": 8,
+    "estimatedCompletion": "2025-07-01T10:35:00Z",
+    "progress": {
+      "currentPhase": "provisioning",
+      "instancesProvisioned": 2,
+      "instancesReady": 1,
+      "progressPercentage": 37
+    },
+    "scalingPolicy": {
+      "maxInstances": 12,
+      "minInstances": 2,
+      "scaleUpThreshold": 0.8,
+      "scaleDownThreshold": 0.3,
+      "cooldownPeriod": 300,
+      "autoScalingEnabled": true
+    },
+    "resourceAllocation": {
+      "additionalCpuCores": 6,
+      "additionalMemoryGB": 24,
+      "estimatedCostImpact": 45.60
+    }
+  }
+}
+```
+
+## Agent Health Checks
+
+Configure and manage health check parameters for agents.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/health" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/health', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const healthCheck = await response.json();
+```
+
+```python python
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/health',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}
+)
+
+health_check = response.json()
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "agentId": "pdf-ingestor-001",
+    "overallHealth": "healthy",
+    "healthScore": 0.95,
+    "lastHealthCheck": "2025-07-01T10:30:00Z",
+    "healthChecks": [
+      {
+        "checkName": "response_time",
+        "status": "passing",
+        "value": 2.1,
+        "threshold": 5.0,
+        "description": "Average response time under threshold",
+        "lastCheck": "2025-07-01T10:30:00Z"
+      },
+      {
+        "checkName": "error_rate",
+        "status": "passing",
+        "value": 0.02,
+        "threshold": 0.05,
+        "description": "Error rate within acceptable limits",
+        "lastCheck": "2025-07-01T10:30:00Z"
+      },
+      {
+        "checkName": "memory_usage",
+        "status": "warning",
+        "value": 0.85,
+        "threshold": 0.9,
+        "description": "Memory usage approaching threshold",
+        "lastCheck": "2025-07-01T10:30:00Z"
+      },
+      {
+        "checkName": "queue_depth",
+        "status": "passing",
+        "value": 3,
+        "threshold": 10,
+        "description": "Queue depth within normal range",
+        "lastCheck": "2025-07-01T10:30:00Z"
+      }
+    ],
+    "diagnostics": {
+      "recentErrors": [
+        {
+          "timestamp": "2025-07-01T10:15:23Z",
+          "error": "Timeout processing large PDF",
+          "severity": "warning",
+          "resolved": true
+        }
+      ],
+      "performanceIssues": [],
+      "resourceConstraints": [
+        {
+          "resource": "memory",
+          "severity": "low",
+          "description": "Memory usage trending upward",
+          "recommendation": "Monitor for potential memory leak"
+        }
+      ]
+    },
+    "recommendations": [
+      "Consider increasing memory allocation",
+      "Monitor for memory leaks in long-running processes"
+    ]
+  }
+}
+```
+
+## Agent Logs
+
+Retrieve logs and diagnostic information from specific agents.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/logs?level=error&limit=100&startTime=2025-07-01T09:00:00Z" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  level: 'error',
+  limit: '100',
+  startTime: '2025-07-01T09:00:00Z'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/logs?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const logs = await response.json();
+```
+
+```python python
+params = {
+    'level': 'error',
+    'limit': 100,
+    'startTime': '2025-07-01T09:00:00Z'
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/logs',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+logs = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `level` | string | Log level filter: `debug`, `info`, `warn`, `error`, `fatal` |
+| `startTime` | string | Start time for log retrieval (ISO 8601) |
+| `endTime` | string | End time for log retrieval (ISO 8601) |
+| `limit` | integer | Maximum number of log entries (max 1000, default 100) |
+| `searchTerm` | string | Search within log messages |
+| `correlationId` | string | Filter by correlation/request ID |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "agentId": "pdf-ingestor-001",
+    "agentType": "pdf_ingestor",
+    "totalLogs": 234,
+    "logsReturned": 100,
+    "timeframe": {
+      "start": "2025-07-01T09:00:00Z", 
+      "end": "2025-07-01T10:30:00Z"
+    },
+    "logs": [
+      {
+        "timestamp": "2025-07-01T10:15:23Z",
+        "level": "error",
+        "message": "Failed to process PDF: timeout after 300 seconds",
+        "correlationId": "req_abc123",
+        "contentId": "content_456",
+        "error": {
+          "type": "ProcessingTimeout",
+          "code": "TIMEOUT",
+          "details": {
+            "fileSize": "45MB",
+            "pages": 156,
+            "processingStep": "text_extraction"
+          }
+        },
+        "context": {
+          "jobId": "job_789",
+          "workflowId": "wf_xyz456",
+          "userId": "user_123"
+        },
+        "stackTrace": "...",
+        "resolved": true,
+        "resolution": "Increased timeout and retried successfully"
+      },
+      {
+        "timestamp": "2025-07-01T10:05:17Z",
+        "level": "error",
+        "message": "OCR processing failed for page 23",
+        "correlationId": "req_def456",
+        "contentId": "content_789",
+        "error": {
+          "type": "OCRProcessingError",
+          "code": "OCR_FAILED",
+          "details": {
+            "page": 23,
+            "imageQuality": "poor",
+            "confidence": 0.12
+          }
+        },
+        "context": {
+          "jobId": "job_101112",
+          "workflowId": "wf_uvw789"
+        },
+        "resolved": false
+      }
+    ],
+    "summary": {
+      "byLevel": {
+        "error": 8,
+        "warn": 23,
+        "info": 156,
+        "debug": 47
+      },
+      "commonErrors": [
+        {
+          "errorType": "ProcessingTimeout",
+          "count": 3,
+          "percentage": 37.5
+        },
+        {
+          "errorType": "OCRProcessingError", 
+          "count": 2,
+          "percentage": 25.0
+        }
+      ]
+    }
+  }
+}
+```
+
+## Restart Agent
+
+Restart a specific agent instance or all instances of an agent type.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/restart" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "Memory leak detected",
+    "graceful": true,
+    "waitForCompletion": true,
+    "drainTimeout": 300
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/restart', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    reason: 'Memory leak detected',
+    graceful: true,
+    waitForCompletion: true,
+    drainTimeout: 300
+  })
+});
+
+const restartResult = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/restart',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'reason': 'Memory leak detected',
+        'graceful': True,
+        'waitForCompletion': True,
+        'drainTimeout': 300
+    }
+)
+
+restart_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `reason` | string | No | Reason for restart |
+| `graceful` | boolean | No | Whether to allow graceful shutdown (default: true) |
+| `waitForCompletion` | boolean | No | Wait for active jobs to complete before restarting |
+| `drainTimeout` | integer | No | Maximum time to wait for job completion (seconds) |
+| `forceRestart` | boolean | No | Force restart even if unhealthy |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "restartOperationId": "restart_op_abc123",
+    "agentId": "pdf-ingestor-001",
+    "agentType": "pdf_ingestor",
+    "restartStatus": "in_progress",
+    "reason": "Memory leak detected",
+    "startedAt": "2025-07-01T10:35:00Z",
+    "estimatedCompletion": "2025-07-01T10:37:30Z",
+    "phases": [
+      {
+        "phase": "job_drain",
+        "status": "completed",
+        "startedAt": "2025-07-01T10:35:00Z",
+        "completedAt": "2025-07-01T10:35:45Z",
+        "details": {
+          "activeJobsAtStart": 3,
+          "jobsCompleted": 3,
+          "jobsReassigned": 0
+        }
+      },
+      {
+        "phase": "graceful_shutdown",
+        "status": "in_progress",
+        "startedAt": "2025-07-01T10:35:45Z",
+        "estimatedCompletion": "2025-07-01T10:36:15Z"
+      },
+      {
+        "phase": "container_restart",
+        "status": "pending"
+      },
+      {
+        "phase": "health_verification",
+        "status": "pending"
+      }
+    ]
+  }
+}
+```
+
+## Agent Configuration
+
+Update agent configuration and deployment parameters.
+
+<CodeGroup>
+```bash curl
+curl -X PUT "https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/configuration" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "resources": {
+      "cpuLimit": "2000m",
+      "memoryLimit": "4Gi",
+      "requestsLimit": 20
+    },
+    "parameters": {
+      "ocrEnabled": true,
+      "qualityMode": "high",
+      "timeout": 600,
+      "maxFileSize": "50MB"
+    },
+    "healthCheck": {
+      "responseTimeThreshold": 5.0,
+      "errorRateThreshold": 0.05,
+      "memoryThreshold": 0.9
+    },
+    "reason": "Optimize for high-quality processing"
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/configuration', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    resources: {
+      cpuLimit: '2000m',
+      memoryLimit: '4Gi',
+      requestsLimit: 20
+    },
+    parameters: {
+      ocrEnabled: true,
+      qualityMode: 'high',
+      timeout: 600,
+      maxFileSize: '50MB'
+    },
+    healthCheck: {
+      responseTimeThreshold: 5.0,
+      errorRateThreshold: 0.05,
+      memoryThreshold: 0.9
+    },
+    reason: 'Optimize for high-quality processing'
+  })
+});
+
+const configResult = await response.json();
+```
+
+```python python
+response = requests.put(
+    'https://api.dynamicquiz.go1.com/v1/agents/pdf-ingestor-001/configuration',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'resources': {
+            'cpuLimit': '2000m',
+            'memoryLimit': '4Gi',
+            'requestsLimit': 20
+        },
+        'parameters': {
+            'ocrEnabled': True,
+            'qualityMode': 'high',
+            'timeout': 600,
+            'maxFileSize': '50MB'
+        },
+        'healthCheck': {
+            'responseTimeThreshold': 5.0,
+            'errorRateThreshold': 0.05,
+            'memoryThreshold': 0.9
+        },
+        'reason': 'Optimize for high-quality processing'
+    }
+)
+
+config_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `resources` | object | No | Resource allocation updates |
+| `parameters` | object | No | Agent-specific parameter updates |
+| `healthCheck` | object | No | Health check threshold updates |
+| `reason` | string | No | Reason for configuration change |
+| `applyImmediately` | boolean | No | Apply changes without restart (default: false) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "agentId": "pdf-ingestor-001",
+    "configurationUpdateId": "config_update_abc123",
+    "status": "applied",
+    "appliedAt": "2025-07-01T10:40:00Z",
+    "changes": [
+      {
+        "parameter": "resources.memoryLimit",
+        "oldValue": "2Gi",
+        "newValue": "4Gi"
+      },
+      {
+        "parameter": "parameters.qualityMode",
+        "oldValue": "standard",
+        "newValue": "high"
+      },
+      {
+        "parameter": "healthCheck.memoryThreshold",
+        "oldValue": 0.8,
+        "newValue": 0.9
+      }
+    ],
+    "restartRequired": false,
+    "impactAssessment": {
+      "performanceImpact": "positive",
+      "resourceImpact": "increased memory usage",
+      "estimatedCostImpact": 12.50
+    },
+    "rollbackAvailable": true,
+    "rollbackId": "rollback_def456"
+  }
+}
+```
+
+## System Analytics
+
+Get comprehensive analytics across all agents and system performance.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/agents/analytics?timeframe=last_7_days&groupBy=agentType&includeCapacity=true" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  timeframe: 'last_7_days',
+  groupBy: 'agentType',
+  includeCapacity: 'true'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/agents/analytics?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const analytics = await response.json();
+```
+
+```python python
+params = {
+    'timeframe': 'last_7_days',
+    'groupBy': 'agentType',
+    'includeCapacity': 'true'
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/agents/analytics',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+analytics = response.json()
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "timeframe": {
+      "start": "2025-06-24T10:30:00Z",
+      "end": "2025-07-01T10:30:00Z",
+      "days": 7
+    },
+    "systemOverview": {
+      "totalAgents": 45,
+      "activeAgents": 43,
+      "totalJobsProcessed": 12847,
+      "averageSystemLoad": 0.62,
+      "overallHealthScore": 0.94,
+      "systemUptime": 99.7
+    },
+    "byAgentType": [
+      {
+        "agentType": "pdf_ingestor",
+        "instanceCount": 8,
+        "jobsProcessed": 3421,
+        "averageResponseTime": 2.3,
+        "successRate": 0.97,
+        "resourceUtilization": {
+          "cpu": 0.52,
+          "memory": 0.68
+        },
+        "qualityMetrics": {
+          "averageConfidence": 0.89,
+          "averageQualityScore": 87
+        }
+      },
+      {
+        "agentType": "multiple_choice_generator",
+        "instanceCount": 12,
+        "jobsProcessed": 5234,
+        "averageResponseTime": 4.1,
+        "successRate": 0.94,
+        "resourceUtilization": {
+          "cpu": 0.71,
+          "memory": 0.78
+        },
+        "qualityMetrics": {
+          "averageConfidence": 0.86,
+          "averageQualityScore": 84
+        }
+      }
+    ],
+    "capacityAnalysis": {
+      "currentCapacity": 0.62,
+      "peakCapacity": 0.89,
+      "capacityTrends": [
+        {"date": "2025-06-24", "capacity": 0.58},
+        {"date": "2025-06-25", "capacity": 0.61},
+        {"date": "2025-06-26", "capacity": 0.65}
+      ],
+      "bottlenecks": [
+        {
+          "agentType": "multiple_choice_generator",
+          "severity": "medium",
+          "description": "Approaching capacity during peak hours",
+          "recommendation": "Consider adding 2-3 more instances"
+        }
+      ]
+    },
+    "qualityTrends": {
+      "overallQualityScore": [
+        {"date": "2025-06-24", "score": 84},
+        {"date": "2025-06-25", "score": 86},
+        {"date": "2025-06-26", "score": 87}
+      ],
+      "confidenceScore": [
+        {"date": "2025-06-24", "score": 0.87},
+        {"date": "2025-06-25", "score": 0.88},
+        {"date": "2025-06-26", "score": 0.89}
+      ]
+    },
+    "errorAnalysis": {
+      "totalErrors": 156,
+      "errorRate": 0.012,
+      "topErrors": [
+        {
+          "errorType": "TimeoutError",
+          "count": 45,
+          "percentage": 28.8,
+          "affectedAgents": ["pdf_ingestor", "multiple_choice_generator"]
+        },
+        {
+          "errorType": "ResourceExhausted",
+          "count": 23,
+          "percentage": 14.7,
+          "affectedAgents": ["multiple_choice_generator"]
+        }
+      ]
+    },
+    "recommendations": [
+      "Scale up multiple_choice_generator agents during peak hours",
+      "Investigate timeout issues in content processing pipeline",
+      "Consider memory optimization for quiz generation agents"
+    ]
+  }
+}
+```
+
+## Error Codes
+
+| Error Code | Description | Resolution |
+|------------|-------------|------------|
+| `AGENT_NOT_FOUND` | Agent ID does not exist | Check agent ID |
+| `AGENT_UNHEALTHY` | Agent is in unhealthy state | Check agent health and restart if needed |
+| `SCALING_FAILED` | Agent scaling operation failed | Check resource limits and try again |
+| `RESTART_FAILED` | Agent restart operation failed | Check agent logs and system resources |
+| `CONFIG_INVALID` | Agent configuration invalid | Validate configuration parameters |
+| `INSUFFICIENT_RESOURCES` | Not enough system resources for operation | Free up resources or increase capacity |
+| `OPERATION_IN_PROGRESS` | Another operation is already running | Wait for completion or cancel existing operation |
+
+## Best Practices
+
+### Monitoring and Alerting
+
+1. **Set up proactive monitoring** - Monitor key metrics and set alerts for thresholds
+2. **Track trends, not just snapshots** - Look at performance over time
+3. **Monitor business metrics** - Track quality scores and success rates, not just technical metrics
+4. **Implement escalation procedures** - Define clear steps for different severity levels
+
+### Performance Optimization
+
+```javascript
+// Example: Automated agent scaling based on load
+async function optimizeAgentPerformance() {
+  try {
+    // 1. Get current system metrics
+    const analytics = await getAgentAnalytics({
+      timeframe: 'last_1_hour',
+      includeCapacity: true
+    });
+    
+    // 2. Identify bottlenecks
+    const bottlenecks = analytics.capacityAnalysis.bottlenecks
+      .filter(b => b.severity === 'high' || b.severity === 'medium');
+    
+    // 3. Auto-scale if needed
+    for (const bottleneck of bottlenecks) {
+      if (bottleneck.agentType && bottleneck.severity === 'high') {
+        const currentInstances = analytics.byAgentType
+          .find(at => at.agentType === bottleneck.agentType)?.instanceCount;
+        
+        const targetInstances = Math.min(currentInstances + 3, 15); // Cap at 15
+        
+        await scaleAgents({
+          agentType: bottleneck.agentType,
+          scalingAction: 'set_instances',
+          targetInstances,
+          reason: `Auto-scaling due to ${bottleneck.severity} bottleneck`
+        });
+      }
+    }
+    
+    // 4. Log optimization actions
+    console.log(`Optimization complete. Addressed ${bottlenecks.length} bottlenecks.`);
+    
+  } catch (error) {
+    console.error('Agent optimization failed:', error);
+    throw error;
+  }
+}
+```
+
+### Resource Management
+
+1. **Right-size instances** - Match resource allocation to actual usage patterns
+2. **Use auto-scaling policies** - Set up automatic scaling based on load
+3. **Monitor resource efficiency** - Track cost per job and optimize accordingly
+4. **Plan for peak loads** - Understand usage patterns and prepare for spikes
+
+### Health and Reliability
+
+1. **Implement circuit breakers** - Prevent cascading failures
+2. **Use graceful degradation** - Maintain service during partial outages
+3. **Regular health checks** - Proactively detect and address issues
+4. **Keep agents updated** - Regularly update agent versions for improvements
+
+## Related Documentation
+
+- [System Architecture](/technical/architecture/system-overview) - Overall system design and agent coordination
+- [Workflow Management](/api-reference/workflows) - Workflow orchestration that coordinates agents
+- [Content Processing](/api-reference/content-processing) - APIs that utilize content processing agents
+- [Quiz Generation](/api-reference/quiz-generation) - APIs that coordinate quiz generation agents

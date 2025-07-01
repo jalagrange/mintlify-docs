@@ -1,0 +1,959 @@
+---
+title: Content Processing
+description: APIs for uploading, processing, and managing content through AI agents
+---
+
+# Content Processing APIs
+
+The content processing APIs handle content upload, format detection, and routing to specialized AI agents for processing. These endpoints work with the Content Orchestrator to coordinate PDF, HTML, and video transcript agents.
+
+<Callout type="info">
+  **Architecture Context**: These APIs trigger content processing workflows that coordinate multiple specialized agents. The Content Orchestrator routes content to appropriate agents based on format detection. See [Workflow Management](/api-reference/workflows) for orchestration details.
+</Callout>
+
+## Content Upload
+
+Upload content files for processing by AI agents.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/content/upload" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -F "file=@document.pdf" \
+  -F "metadata={\"title\":\"Machine Learning Guide\",\"description\":\"Comprehensive ML tutorial\",\"tags\":[\"machine-learning\",\"tutorial\"]}"
+```
+
+```javascript javascript
+const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+formData.append('metadata', JSON.stringify({
+  title: 'Machine Learning Guide',
+  description: 'Comprehensive ML tutorial',
+  tags: ['machine-learning', 'tutorial']
+}));
+
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/content/upload', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  },
+  body: formData
+});
+
+const contentUpload = await response.json();
+```
+
+```python python
+import requests
+
+files = {'file': open('document.pdf', 'rb')}
+data = {
+    'metadata': json.dumps({
+        'title': 'Machine Learning Guide',
+        'description': 'Comprehensive ML tutorial',
+        'tags': ['machine-learning', 'tutorial']
+    })
+}
+
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/content/upload',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    files=files,
+    data=data
+)
+
+content_upload = response.json()
+```
+</CodeGroup>
+
+### Request Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | file | Yes | Content file (PDF, HTML, TXT) |
+| `metadata` | object | No | Content metadata and processing options |
+
+#### Metadata Object
+
+```json
+{
+  "title": "string",
+  "description": "string", 
+  "author": {
+    "name": "string",
+    "email": "string",
+    "organization": "string"
+  },
+  "tags": ["string"],
+  "language": "en",
+  "difficulty": "beginner|intermediate|advanced",
+  "domain": "string",
+  "processingOptions": {
+    "extractImages": true,
+    "enableOCR": false,
+    "analyzeDifficulty": true,
+    "generateTopics": true,
+    "qualityMode": "standard|high"
+  },
+  "workflowConfiguration": {
+    "priority": "low|normal|high",
+    "timeout": 600,
+    "agentPreferences": {
+      "pdfAgent": "standard|advanced",
+      "topicExtraction": "fast|thorough"
+    }
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "contentId": "content_123",
+    "uploadStatus": "uploaded",
+    "fileInfo": {
+      "filename": "document.pdf",
+      "size": 2457600,
+      "mimeType": "application/pdf",
+      "checksum": "sha256:abc123...",
+      "uploadedAt": "2025-07-01T10:00:00Z"
+    },
+    "detectedFormat": {
+      "primaryType": "pdf",
+      "characteristics": {
+        "pages": 45,
+        "hasImages": true,
+        "hasText": true,
+        "isScanned": false,
+        "estimatedComplexity": "medium"
+      }
+    },
+    "workflowInfo": {
+      "workflowId": "wf_abc123",
+      "workflowType": "content_processing",
+      "estimatedDuration": 300,
+      "queuePosition": 2
+    },
+    "nextSteps": {
+      "automatic": "content_processing_workflow",
+      "manual": ["monitor_workflow", "configure_quiz_generation"]
+    }
+  }
+}
+```
+
+## Upload from URL
+
+Process content from a URL (for HTML content or publicly accessible documents).
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/content/upload-url" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/machine-learning-guide.html",
+    "metadata": {
+      "title": "ML Guide from Web",
+      "tags": ["web-content", "machine-learning"]
+    },
+    "processingOptions": {
+      "extractLinks": true,
+      "downloadMedia": false,
+      "respectRobots": true
+    }
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/content/upload-url', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    url: 'https://example.com/machine-learning-guide.html',
+    metadata: {
+      title: 'ML Guide from Web',
+      tags: ['web-content', 'machine-learning']
+    },
+    processingOptions: {
+      extractLinks: true,
+      downloadMedia: false,
+      respectRobots: true
+    }
+  })
+});
+
+const urlUpload = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/content/upload-url',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'url': 'https://example.com/machine-learning-guide.html',
+        'metadata': {
+            'title': 'ML Guide from Web',
+            'tags': ['web-content', 'machine-learning']
+        },
+        'processingOptions': {
+            'extractLinks': True,
+            'downloadMedia': False,
+            'respectRobots': True
+        }
+    }
+)
+
+url_upload = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `url` | string | Yes | URL to content resource |
+| `metadata` | object | No | Content metadata |
+| `processingOptions` | object | No | URL-specific processing options |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "contentId": "content_124",
+    "uploadStatus": "fetching",
+    "urlInfo": {
+      "originalUrl": "https://example.com/machine-learning-guide.html",
+      "resolvedUrl": "https://example.com/machine-learning-guide.html",
+      "contentType": "text/html",
+      "lastModified": "2025-06-15T14:30:00Z",
+      "fetchedAt": "2025-07-01T10:00:00Z"
+    },
+    "workflowInfo": {
+      "workflowId": "wf_def456",
+      "workflowType": "content_processing",
+      "estimatedDuration": 180
+    }
+  }
+}
+```
+
+## Get Content Status
+
+Retrieve processing status and results for uploaded content.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/content/content_123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/content/content_123', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const contentStatus = await response.json();
+```
+
+```python python
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/content/content_123',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}
+)
+
+content_status = response.json()
+```
+</CodeGroup>
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "contentId": "content_123",
+    "status": "processed",
+    "metadata": {
+      "title": "Machine Learning Guide",
+      "description": "Comprehensive ML tutorial",
+      "language": "en",
+      "difficulty": "intermediate",
+      "domain": "technology",
+      "author": {
+        "name": "Dr. Jane Smith",
+        "email": "jane@university.edu"
+      },
+      "tags": ["machine-learning", "tutorial"],
+      "estimatedReadingTime": 45,
+      "version": "1.0.0",
+      "lastModified": "2025-07-01T10:05:30Z"
+    },
+    "processing": {
+      "workflowId": "wf_abc123",
+      "processedAt": "2025-07-01T10:05:30Z",
+      "processingDuration": 330,
+      "agentsUsed": [
+        {
+          "agentType": "pdf_ingestor",
+          "version": "1.0.0",
+          "processingTime": 280,
+          "confidence": 0.95
+        },
+        {
+          "agentType": "topic_extractor", 
+          "version": "1.0.0",
+          "processingTime": 50,
+          "confidence": 0.88
+        }
+      ],
+      "statistics": {
+        "totalWords": 12500,
+        "totalSections": 8,
+        "topicsExtracted": 12,
+        "conceptsExtracted": 45,
+        "mediaElementsFound": 3
+      }
+    },
+    "structure": {
+      "sectionsCount": 8,
+      "hierarchyDepth": 3,
+      "hasImages": true,
+      "hasCode": false,
+      "hasTables": true
+    },
+    "topics": [
+      {
+        "id": "topic_ml_basics",
+        "name": "Machine Learning Basics",
+        "importance": 0.95,
+        "coverage": 0.8,
+        "difficulty": 6,
+        "keyTerms": ["supervised learning", "unsupervised learning"]
+      }
+    ],
+    "quality": {
+      "overallScore": 92,
+      "dimensions": {
+        "clarity": 90,
+        "completeness": 85,
+        "accuracy": 95,
+        "structure": 88,
+        "assessability": 92
+      },
+      "recommendations": ["generate_quiz"],
+      "issues": []
+    },
+    "readyForQuizGeneration": true,
+    "estimatedQuizQuestions": 15
+  }
+}
+```
+
+## List Content
+
+Retrieve a list of uploaded content with filtering and pagination.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/content?status=processed&domain=technology&limit=20" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  status: 'processed',
+  domain: 'technology',
+  limit: '20'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/content?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const contentList = await response.json();
+```
+
+```python python
+params = {
+    'status': 'processed',
+    'domain': 'technology',
+    'limit': 20
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/content',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+content_list = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | Filter by processing status: `uploading`, `processing`, `processed`, `failed` |
+| `domain` | string | Filter by content domain |
+| `difficulty` | string | Filter by difficulty level |
+| `language` | string | Filter by language code |
+| `tags` | string | Comma-separated list of tags |
+| `uploadedAfter` | string | ISO 8601 timestamp |
+| `uploadedBefore` | string | ISO 8601 timestamp |
+| `readyForQuiz` | boolean | Filter content ready for quiz generation |
+| `limit` | integer | Results per page (max 100, default 20) |
+| `offset` | integer | Pagination offset |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "contentId": "content_123",
+      "title": "Machine Learning Guide",
+      "status": "processed",
+      "domain": "technology",
+      "difficulty": "intermediate",
+      "uploadedAt": "2025-07-01T10:00:00Z",
+      "processedAt": "2025-07-01T10:05:30Z",
+      "readyForQuizGeneration": true,
+      "qualityScore": 92,
+      "estimatedQuizQuestions": 15,
+      "topicsCount": 12
+    }
+  ],
+  "pagination": {
+    "total": 156,
+    "limit": 20,
+    "offset": 0,
+    "hasNext": true,
+    "hasPrevious": false
+  }
+}
+```
+
+## Reprocess Content
+
+Trigger reprocessing of content with updated configuration or agent versions.
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.dynamicquiz.go1.com/v1/content/content_123/reprocess" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reason": "Improved PDF agent available",
+    "processingOptions": {
+      "enableOCR": true,
+      "qualityMode": "high",
+      "generateTopics": true
+    },
+    "preserveExisting": {
+      "metadata": true,
+      "manualAnnotations": true
+    }
+  }'
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/content/content_123/reprocess', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    reason: 'Improved PDF agent available',
+    processingOptions: {
+      enableOCR: true,
+      qualityMode: 'high',
+      generateTopics: true
+    },
+    preserveExisting: {
+      metadata: true,
+      manualAnnotations: true
+    }
+  })
+});
+
+const reprocessResult = await response.json();
+```
+
+```python python
+response = requests.post(
+    'https://api.dynamicquiz.go1.com/v1/content/content_123/reprocess',
+    headers={
+        'Authorization': 'Bearer YOUR_API_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'reason': 'Improved PDF agent available',
+        'processingOptions': {
+            'enableOCR': True,
+            'qualityMode': 'high',
+            'generateTopics': True
+        },
+        'preserveExisting': {
+            'metadata': True,
+            'manualAnnotations': True
+        }
+    }
+)
+
+reprocess_result = response.json()
+```
+</CodeGroup>
+
+### Request Body
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `reason` | string | No | Reason for reprocessing |
+| `processingOptions` | object | No | Updated processing configuration |
+| `preserveExisting` | object | No | What to preserve from previous processing |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "contentId": "content_123",
+    "reprocessingWorkflowId": "wf_ghi789",
+    "status": "reprocessing",
+    "reason": "Improved PDF agent available",
+    "previousVersion": {
+      "processedAt": "2025-07-01T10:05:30Z",
+      "qualityScore": 87,
+      "agentVersions": {
+        "pdfAgent": "1.0.0",
+        "topicExtractor": "1.0.0"
+      }
+    },
+    "newConfiguration": {
+      "enableOCR": true,
+      "qualityMode": "high",
+      "expectedImprovements": [
+        "Better text extraction from scanned pages",
+        "Higher quality topic identification",
+        "Improved concept mapping"
+      ]
+    },
+    "estimatedCompletion": "2025-07-01T10:20:00Z"
+  }
+}
+```
+
+## Get Processing Logs
+
+Retrieve detailed processing logs for content analysis and debugging.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/content/content_123/logs?level=info&limit=100" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  level: 'info',
+  limit: '100'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/content/content_123/logs?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const logs = await response.json();
+```
+
+```python python
+params = {
+    'level': 'info',
+    'limit': 100
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/content/content_123/logs',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+logs = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `level` | string | Log level filter: `debug`, `info`, `warn`, `error` |
+| `agent` | string | Filter by specific agent type |
+| `step` | string | Filter by processing step |
+| `startTime` | string | ISO 8601 timestamp - logs after this time |
+| `endTime` | string | ISO 8601 timestamp - logs before this time |
+| `limit` | integer | Number of log entries (max 1000, default 100) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "contentId": "content_123",
+    "workflowId": "wf_abc123",
+    "logs": [
+      {
+        "timestamp": "2025-07-01T10:00:15Z",
+        "level": "info",
+        "agent": "content_orchestrator",
+        "step": "format_detection",
+        "message": "PDF format detected, routing to PDF agent",
+        "data": {
+          "fileSize": "2.3MB",
+          "pages": 45,
+          "mimeType": "application/pdf"
+        }
+      },
+      {
+        "timestamp": "2025-07-01T10:01:22Z",
+        "level": "info",
+        "agent": "pdf_ingestor",
+        "step": "text_extraction",
+        "message": "Extracted text from 45 pages",
+        "data": {
+          "wordCount": 12500,
+          "extractionMethod": "native_text",
+          "confidence": 0.98
+        }
+      },
+      {
+        "timestamp": "2025-07-01T10:03:45Z",
+        "level": "info",
+        "agent": "topic_extractor",
+        "step": "topic_analysis",
+        "message": "Identified 12 primary topics",
+        "data": {
+          "topicsFound": 12,
+          "conceptsExtracted": 45,
+          "averageConfidence": 0.88
+        }
+      }
+    ],
+    "summary": {
+      "totalLogs": 45,
+      "byLevel": {
+        "debug": 15,
+        "info": 25,
+        "warn": 4,
+        "error": 1
+      },
+      "processingSteps": [
+        "format_detection",
+        "text_extraction", 
+        "topic_analysis",
+        "concept_mapping",
+        "quality_assessment"
+      ]
+    }
+  }
+}
+```
+
+## Content Analytics
+
+Get analytics and insights about content processing performance.
+
+<CodeGroup>
+```bash curl
+curl -X GET "https://api.dynamicquiz.go1.com/v1/content/analytics?timeframe=last_30_days&groupBy=domain" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const params = new URLSearchParams({
+  timeframe: 'last_30_days',
+  groupBy: 'domain'
+});
+
+const response = await fetch(`https://api.dynamicquiz.go1.com/v1/content/analytics?${params}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const analytics = await response.json();
+```
+
+```python python
+params = {
+    'timeframe': 'last_30_days',
+    'groupBy': 'domain'
+}
+
+response = requests.get(
+    'https://api.dynamicquiz.go1.com/v1/content/analytics',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+analytics = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `timeframe` | string | Time period: `last_7_days`, `last_30_days`, `last_90_days`, `custom` |
+| `startDate` | string | Start date for custom timeframe (ISO 8601) |
+| `endDate` | string | End date for custom timeframe (ISO 8601) |
+| `groupBy` | string | Group results by: `domain`, `difficulty`, `agent_type`, `status` |
+| `includeFailures` | boolean | Include failed processing attempts in analytics |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "timeframe": {
+      "start": "2025-06-01T00:00:00Z",
+      "end": "2025-07-01T00:00:00Z",
+      "days": 30
+    },
+    "overview": {
+      "totalContent": 342,
+      "successfulProcessing": 328,
+      "failedProcessing": 14,
+      "successRate": 95.9,
+      "averageProcessingTime": 245,
+      "averageQualityScore": 84.2
+    },
+    "byDomain": [
+      {
+        "domain": "technology",
+        "count": 156,
+        "successRate": 97.4,
+        "averageQualityScore": 86.3,
+        "averageProcessingTime": 278
+      },
+      {
+        "domain": "business", 
+        "count": 89,
+        "successRate": 94.4,
+        "averageQualityScore": 82.1,
+        "averageProcessingTime": 201
+      }
+    ],
+    "agentPerformance": [
+      {
+        "agentType": "pdf_ingestor",
+        "contentProcessed": 234,
+        "averageProcessingTime": 187,
+        "successRate": 96.6,
+        "averageConfidence": 0.91
+      },
+      {
+        "agentType": "html_processor",
+        "contentProcessed": 98,
+        "averageProcessingTime": 145,
+        "successRate": 94.9,
+        "averageConfidence": 0.88
+      }
+    ],
+    "qualityDistribution": {
+      "excellent": { "range": "90-100", "count": 128, "percentage": 37.4 },
+      "good": { "range": "80-89", "count": 145, "percentage": 42.4 },
+      "fair": { "range": "70-79", "count": 55, "percentage": 16.1 },
+      "poor": { "range": "0-69", "count": 14, "percentage": 4.1 }
+    },
+    "trends": {
+      "processingTime": {
+        "direction": "improving",
+        "change": -12.3,
+        "unit": "seconds"
+      },
+      "qualityScore": {
+        "direction": "improving", 
+        "change": 3.2,
+        "unit": "points"
+      }
+    }
+  }
+}
+```
+
+## Delete Content
+
+Remove content and all associated processing data.
+
+<CodeGroup>
+```bash curl
+curl -X DELETE "https://api.dynamicquiz.go1.com/v1/content/content_123?deleteQuizzes=false" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript javascript
+const response = await fetch('https://api.dynamicquiz.go1.com/v1/content/content_123?deleteQuizzes=false', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const deleteResult = await response.json();
+```
+
+```python python
+params = {'deleteQuizzes': 'false'}
+
+response = requests.delete(
+    'https://api.dynamicquiz.go1.com/v1/content/content_123',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    params=params
+)
+
+delete_result = response.json()
+```
+</CodeGroup>
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `deleteQuizzes` | boolean | Whether to delete associated quizzes (default: false) |
+| `deleteResults` | boolean | Whether to delete quiz results (default: false) |
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "contentId": "content_123",
+    "deletedAt": "2025-07-01T11:00:00Z",
+    "deletedItems": {
+      "content": true,
+      "processedData": true,
+      "uploadedFiles": true,
+      "processingLogs": true,
+      "associatedQuizzes": 0,
+      "quizResults": 0
+    },
+    "preservation": {
+      "anonymizedAnalytics": true,
+      "aggregatedStatistics": true
+    }
+  }
+}
+```
+
+## Error Codes
+
+| Error Code | Description | Resolution |
+|------------|-------------|------------|
+| `CONTENT_NOT_FOUND` | Content ID does not exist | Check content ID |
+| `UPLOAD_FAILED` | File upload failed | Check file size, format, and connection |
+| `UNSUPPORTED_FORMAT` | File format not supported | Use PDF, HTML, or TXT files |
+| `FILE_TOO_LARGE` | File exceeds size limit | Reduce file size or contact support |
+| `PROCESSING_FAILED` | Content processing failed | Check logs and retry |
+| `AGENT_UNAVAILABLE` | Required agent not available | Retry later or use different agent |
+| `QUOTA_EXCEEDED` | API quota exceeded | Check usage limits |
+| `INVALID_URL` | URL not accessible or invalid | Verify URL accessibility |
+
+## Best Practices
+
+### Content Upload
+
+1. **Optimize file sizes** - Compress PDFs and optimize images before upload
+2. **Provide good metadata** - Include descriptive titles, tags, and difficulty levels
+3. **Use appropriate quality modes** - Balance processing time vs. quality needs
+4. **Monitor processing status** - Use webhooks or polling for status updates
+
+### Error Handling
+
+```javascript
+// Example: Robust content upload with retry logic
+async function uploadContentWithRetry(file, metadata, maxRetries = 3) {
+  let attempt = 0;
+  
+  while (attempt < maxRetries) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('metadata', JSON.stringify(metadata));
+      
+      const response = await fetch('/api/v1/content/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        
+        // Don't retry for client errors
+        if (response.status >= 400 && response.status < 500) {
+          throw new Error(error.error.message);
+        }
+        
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+      
+      return await response.json();
+      
+    } catch (error) {
+      attempt++;
+      
+      if (attempt >= maxRetries) {
+        throw error;
+      }
+      
+      // Exponential backoff
+      await new Promise(resolve => 
+        setTimeout(resolve, Math.pow(2, attempt) * 1000)
+      );
+    }
+  }
+}
+```
+
+### Performance Optimization
+
+1. **Use appropriate processing options** - Enable OCR only when necessary
+2. **Batch multiple uploads** - Group related content for efficient processing
+3. **Monitor agent performance** - Track processing times and adjust accordingly
+4. **Cache processed results** - Avoid reprocessing unchanged content
+
+## Related Documentation
+
+- [Workflow Management](/api-reference/workflows) - Workflow orchestration and monitoring
+- [Quiz Generation](/api-reference/quiz-generation) - Generate quizzes from processed content
+- [Content Schema](/technical/data-models/content-schema) - Content data structures
+- [Agent Monitoring](/api-reference/agent-monitoring) - Monitor agent performance and health
