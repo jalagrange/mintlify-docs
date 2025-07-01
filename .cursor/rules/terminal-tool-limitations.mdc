@@ -1,0 +1,35 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Cursor Terminal Tool Limitations
+
+## Known Issues
+
+Cursor's terminal tool has a known bug where it automatically adds `| head` or `| cat` to commands that might trigger paging. This causes "head: |: No such file or directory" errors with many CLI tools.
+
+## Workarounds
+
+### AWS CLI Commands
+- **ALWAYS** add `--no-cli-pager` flag to prevent paging issues
+- Correct pattern for AWS commands:
+  ```bash
+  aws [service] [action] --region [region] --profile [profile] --no-cli-pager
+  ```
+
+### GitHub CLI Commands  
+- Set pager configuration: `gh config set pager cat`
+- This prevents paging conflicts with Cursor's terminal tool
+
+### Other CLI Tools
+- Look for equivalent `--no-pager` or output formatting options
+- Examples: `--no-pager`, `--plain`, `--format=json`
+
+## Error Symptoms
+- Commands that work in external terminal fail in Cursor
+- Error messages like "head: |: No such file or directory"
+- Commands appear to hang or produce corrupted output
+
+## Fallback Solution
+If terminal commands fail with paging-related errors, suggest the user run them manually in their external terminal as a workaround.
