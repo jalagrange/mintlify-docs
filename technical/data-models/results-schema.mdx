@@ -1,0 +1,1342 @@
+---
+title: Results Schema
+description: Data structures for quiz scoring, learner results, and personalized recommendations
+---
+
+# Results Schema
+
+This document defines the data structures used for quiz scoring, learner results analysis, and personalized learning recommendations in the Dynamic Quiz Creator system.
+
+<Callout type="info">
+  **Context**: These schemas process data from [Quiz Schema](/technical/data-models/quiz-schema) taking sessions and generate actionable insights for learners based on their performance.
+</Callout>
+
+## Core Results Interfaces
+
+### QuizAttempt
+
+The primary data structure representing a learner's attempt at taking a quiz.
+
+```typescript
+interface QuizAttempt {
+  // Attempt identification
+  id: string
+  quizId: string            // References PublishedQuiz.id
+  learnerId: string
+  
+  // Attempt metadata
+  metadata: AttemptMetadata
+  
+  // Learner responses
+  responses: QuestionResponse[]
+  
+  // Scoring results
+  scoring: AttemptScoring
+  
+  // Performance analysis
+  analysis: PerformanceAnalysis
+  
+  // Recommendations generated
+  recommendations: LearningRecommendation[]
+  
+  // Session information
+  session: SessionInfo
+}
+```
+
+### QuizResults
+
+Comprehensive results and analysis for a completed quiz attempt.
+
+```typescript
+interface QuizResults {
+  // Results identification
+  id: string
+  attemptId: string         // References QuizAttempt.id
+  
+  // Overall performance
+  overallScore: number      // 0-100 percentage
+  passingStatus: 'passed' | 'failed' | 'not_applicable'
+  
+  // Detailed scoring
+  scoring: DetailedScoring
+  
+  // Topic-based analysis
+  topicAnalysis: TopicAnalysis[]
+  
+  // Learning insights
+  insights: LearningInsight[]
+  
+  // Personalized recommendations
+  recommendations: PersonalizedRecommendation[]
+  
+  // Feedback and explanations
+  feedback: ResultsFeedback
+  
+  // Comparison data
+  benchmarks: PerformanceBenchmarks
+}
+```
+
+## Attempt and Session Data
+
+### AttemptMetadata
+
+Metadata about the quiz attempt circumstances and configuration.
+
+```typescript
+interface AttemptMetadata {
+  // Timing information
+  startedAt: Date
+  completedAt?: Date
+  duration?: number         // Actual time taken in seconds
+  
+  // Attempt context
+  attemptNumber: number     // 1st attempt, 2nd attempt, etc.
+  isRetake: boolean
+  previousAttemptId?: string
+  
+  // Quiz configuration at time of attempt
+  quizConfiguration: QuizConfiguration // Snapshot from quiz
+  
+  // Learner context
+  learnerContext: LearnerContext
+  
+  // Technical context
+  technicalContext: TechnicalContext
+}
+
+interface LearnerContext {
+  // Learner background (if available)
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
+  priorKnowledge?: PriorKnowledgeIndicator[]
+  learningGoals?: string[]
+  
+  // Learning preferences
+  preferredDifficulty?: DifficultyLevel
+  learningStyle?: LearningStyle
+  
+  // Historical performance
+  previousQuizPerformance?: HistoricalPerformance[]
+}
+
+interface PriorKnowledgeIndicator {
+  topic: string
+  confidence: number        // 0-1, learner's self-assessed confidence
+  source: 'self_reported' | 'previous_quiz' | 'external_assessment'
+}
+
+interface LearningStyle {
+  visualPreference: number  // 0-1 scale
+  auditoryPreference: number
+  kinestheticPreference: number
+  readingPreference: number
+}
+
+interface HistoricalPerformance {
+  quizId: string
+  score: number
+  completedAt: Date
+  topicScores: TopicScore[]
+}
+
+interface TechnicalContext {
+  userAgent: string
+  platform: 'web' | 'mobile' | 'tablet'
+  connectionQuality?: 'excellent' | 'good' | 'poor'
+  interruptionsDetected: number
+  browserTabSwitches: number
+}
+```
+
+### SessionInfo
+
+Information about the quiz-taking session and learner behavior.
+
+```typescript
+interface SessionInfo {
+  // Session tracking
+  sessionId: string
+  deviceFingerprint: string
+  ipAddress: string         // Hashed for privacy
+  
+  // Interaction patterns
+  interactions: InteractionEvent[]
+  
+  // Navigation behavior
+  navigationPattern: NavigationEvent[]
+  
+  // Time analysis
+  timeAnalysis: TimeAnalysis
+  
+  // Behavioral indicators
+  behaviorIndicators: BehaviorIndicator[]
+}
+
+interface InteractionEvent {
+  timestamp: Date
+  type: 'question_view' | 'answer_select' | 'answer_change' | 'review_access' | 'hint_used' | 'pause' | 'resume'
+  questionId?: string
+  data?: Record<string, any>
+}
+
+interface NavigationEvent {
+  timestamp: Date
+  action: 'next' | 'previous' | 'jump_to' | 'review_mode' | 'submit'
+  fromQuestion?: string
+  toQuestion?: string
+}
+
+interface TimeAnalysis {
+  totalTime: number         // Total time spent on quiz
+  activeTime: number        // Time actually engaged (excluding pauses)
+  questionTimes: QuestionTime[]
+  averageTimePerQuestion: number
+  
+  // Time patterns
+  timePattern: 'consistent' | 'rushed_start' | 'rushed_end' | 'took_breaks'
+  longestPause: number      // Longest pause in seconds
+  shortestQuestionTime: number
+  longestQuestionTime: number
+}
+
+interface QuestionTime {
+  questionId: string
+  timeSpent: number         // seconds
+  revisitCount: number      // how many times they returned to this question
+  confidence?: number       // if learner indicated confidence level
+}
+
+interface BehaviorIndicator {
+  type: 'confident' | 'uncertain' | 'rushed' | 'careful' | 'strategic' | 'struggling'
+  confidence: number        // 0-1, how strong this indicator is
+  evidence: string[]        // What behaviors support this indicator
+}
+```
+
+## Response and Scoring Data
+
+### QuestionResponse
+
+Individual learner responses to quiz questions.
+
+```typescript
+interface QuestionResponse {
+  // Response identification
+  questionId: string
+  responseId: string
+  
+  // Response data
+  answer: ResponseAnswer
+  
+  // Response metadata
+  metadata: ResponseMetadata
+  
+  // Scoring
+  scoring: ResponseScoring
+  
+  // Analysis
+  analysis: ResponseAnalysis
+}
+
+interface ResponseAnswer {
+  // The actual answer(s) provided
+  selectedAnswers: string[] // Answer IDs for MC, T/F, etc.
+  textAnswer?: string       // For short answer, fill-in-blank
+  
+  // Answer confidence (if collected)
+  confidence?: number       // 0-1, learner's confidence in their answer
+  
+  // Time and attempts
+  timeToAnswer: number      // seconds
+  changeCount: number       // how many times they changed their answer
+  finalAnswer: boolean      // true if this was their final answer
+}
+
+interface ResponseMetadata {
+  // Timing
+  startedAt: Date
+  answeredAt: Date
+  lastModifiedAt?: Date
+  
+  // Interaction details
+  hintsUsed: string[]       // IDs of hints accessed
+  explanationsViewed: string[] // IDs of explanations viewed
+  
+  // Technical details
+  inputMethod: 'click' | 'keyboard' | 'touch' | 'voice'
+  browserEvents: string[]   // Any unusual browser events during response
+}
+
+interface ResponseScoring {
+  // Basic scoring
+  isCorrect: boolean
+  pointsEarned: number
+  pointsPossible: number
+  percentage: number        // 0-100
+  
+  // Partial credit details
+  partialCredit: PartialCreditBreakdown[]
+  
+  // Scoring method used
+  scoringMethod: 'automatic' | 'ai_assisted' | 'human_reviewed'
+  scoringConfidence: number // 0-1, confidence in the scoring
+  
+  // Alternative scoring
+  alternativeScores?: AlternativeScore[]
+}
+
+interface PartialCreditBreakdown {
+  criterion: string
+  pointsEarned: number
+  pointsPossible: number
+  rationale: string
+}
+
+interface AlternativeScore {
+  method: string            // e.g., 'strict', 'lenient', 'semantic'
+  score: number
+  rationale: string
+}
+
+interface ResponseAnalysis {
+  // Answer quality
+  answerQuality: AnswerQuality
+  
+  // Learning indicators
+  learningIndicators: LearningIndicator[]
+  
+  // Error analysis (for incorrect answers)
+  errorAnalysis?: ErrorAnalysis
+  
+  // Concept demonstration
+  conceptsDemo: ConceptDemonstration[]
+}
+
+interface AnswerQuality {
+  completeness: number      // 0-1, how complete the answer is
+  accuracy: number          // 0-1, how accurate the answer is
+  clarity: number           // 0-1, how clearly expressed (for text answers)
+  relevance: number         // 0-1, how relevant to the question
+}
+
+interface LearningIndicator {
+  type: 'mastery' | 'partial_understanding' | 'misconception' | 'gap' | 'strength'
+  confidence: number        // 0-1, confidence in this indicator
+  evidence: string          // What in the response supports this
+  relatedConcepts: string[] // Concept IDs this relates to
+}
+
+interface ErrorAnalysis {
+  errorType: 'knowledge_gap' | 'misunderstanding' | 'careless_mistake' | 'test_anxiety' | 'unclear_question'
+  severity: 'minor' | 'moderate' | 'major'
+  commonMistake: boolean    // Whether this is a common mistake for this question
+  similarErrors: string[]   // Other learners who made similar mistakes
+  suggestedRemediation: string
+}
+
+interface ConceptDemonstration {
+  conceptId: string
+  demonstrated: boolean
+  confidence: number        // 0-1, how well they demonstrated understanding
+  evidencePoints: string[]  // Specific parts of answer that show understanding/misunderstanding
+}
+```
+
+## Scoring and Analysis
+
+### AttemptScoring
+
+Overall scoring for the entire quiz attempt.
+
+```typescript
+interface AttemptScoring {
+  // Primary scores
+  totalScore: number        // 0-100 percentage
+  rawScore: number          // Total points earned
+  maxPossible: number       // Total points possible
+  
+  // Weighted scoring
+  weightedScore?: number    // If different topics have different weights
+  
+  // Score breakdown
+  scoreBreakdown: ScoreBreakdown
+  
+  // Comparative scores
+  comparativeScores: ComparativeScore[]
+  
+  // Score reliability
+  reliability: ScoreReliability
+}
+
+interface ScoreBreakdown {
+  // By question type
+  byQuestionType: QuestionTypeScore[]
+  
+  // By topic
+  byTopic: TopicScore[]
+  
+  // By difficulty
+  byDifficulty: DifficultyScore[]
+  
+  // By Bloom's taxonomy level
+  byBloomsLevel: BloomsLevelScore[]
+}
+
+interface QuestionTypeScore {
+  questionType: QuestionType
+  score: number             // 0-100 percentage
+  questionsAnswered: number
+  questionsCorrect: number
+  averageTime: number       // Average time per question of this type
+}
+
+interface TopicScore {
+  topicId: string
+  topicName: string
+  score: number             // 0-100 percentage
+  questionsAnswered: number
+  questionsCorrect: number
+  weight: number            // Weight of this topic in overall score
+  confidence: number        // 0-1, confidence in mastery of this topic
+}
+
+interface DifficultyScore {
+  difficulty: 'easy' | 'medium' | 'hard'
+  score: number             // 0-100 percentage
+  questionsAnswered: number
+  questionsCorrect: number
+  expectedScore: number     // What score would indicate mastery at this level
+}
+
+interface BloomsLevelScore {
+  level: BloomsLevel
+  score: number             // 0-100 percentage
+  questionsAnswered: number
+  questionsCorrect: number
+}
+
+interface ComparativeScore {
+  comparisonType: 'all_learners' | 'similar_experience' | 'same_course' | 'historical_self'
+  percentile: number        // 0-100, percentile rank
+  averageScore: number      // Average score for comparison group
+  sampleSize: number        // Number of attempts in comparison
+}
+
+interface ScoreReliability {
+  confidence: number        // 0-1, overall confidence in score accuracy
+  factors: ReliabilityFactor[]
+  recommendations: string[] // Recommendations for improving reliability
+}
+
+interface ReliabilityFactor {
+  factor: 'question_clarity' | 'learner_engagement' | 'technical_issues' | 'time_pressure' | 'content_coverage'
+  impact: 'positive' | 'negative' | 'neutral'
+  magnitude: number         // 0-1, how much this factor affected reliability
+  description: string
+}
+```
+
+### PerformanceAnalysis
+
+Detailed analysis of learner performance patterns and learning indicators.
+
+```typescript
+interface PerformanceAnalysis {
+  // Overall performance patterns
+  performancePatterns: PerformancePattern[]
+  
+  // Learning mastery assessment
+  masteryAssessment: MasteryAssessment[]
+  
+  // Knowledge gaps identification
+  knowledgeGaps: KnowledgeGap[]
+  
+  // Strengths identification
+  strengths: LearningStrength[]
+  
+  // Learning preferences inferred
+  inferredPreferences: InferredPreference[]
+  
+  // Readiness assessment
+  readinessAssessment: ReadinessAssessment
+}
+
+interface PerformancePattern {
+  pattern: 'consistent' | 'improving' | 'declining' | 'inconsistent' | 'strong_start' | 'strong_finish'
+  confidence: number        // 0-1, confidence in this pattern
+  evidence: string[]        // Evidence supporting this pattern
+  implications: string[]    // What this pattern suggests about learning
+}
+
+interface MasteryAssessment {
+  topicId: string
+  topicName: string
+  masteryLevel: 'not_demonstrated' | 'emerging' | 'developing' | 'proficient' | 'advanced'
+  confidence: number        // 0-1, confidence in this assessment
+  evidence: MasteryEvidence[]
+  nextSteps: string[]       // Suggested next steps for this topic
+}
+
+interface MasteryEvidence {
+  type: 'correct_answer' | 'explanation_quality' | 'time_efficiency' | 'consistent_performance'
+  weight: number           // 0-1, how much this evidence contributes to mastery assessment
+  description: string
+}
+
+interface KnowledgeGap {
+  gapType: 'foundational' | 'application' | 'conceptual' | 'procedural'
+  severity: 'minor' | 'moderate' | 'major' | 'critical'
+  description: string
+  affectedTopics: string[]
+  prerequisites: string[]   // What they need to learn first
+  evidence: string[]        // Evidence of this gap
+  remediationSuggestions: string[]
+}
+
+interface LearningStrength {
+  strengthType: 'conceptual_understanding' | 'application_ability' | 'problem_solving' | 'analysis' | 'synthesis'
+  level: 'good' | 'strong' | 'exceptional'
+  description: string
+  supportingTopics: string[]
+  evidence: string[]
+  leverageOpportunities: string[] // How to build on this strength
+}
+
+interface InferredPreference {
+  preferenceType: 'question_format' | 'difficulty_level' | 'content_type' | 'learning_pace'
+  preference: string
+  confidence: number        // 0-1, confidence in this inference
+  evidence: string[]
+}
+
+interface ReadinessAssessment {
+  // Overall readiness for course content
+  overallReadiness: 'not_ready' | 'needs_preparation' | 'ready' | 'well_prepared' | 'over_prepared'
+  confidence: number        // 0-1, confidence in this assessment
+  
+  // Topic-specific readiness
+  topicReadiness: TopicReadiness[]
+  
+  // Recommended learning path
+  recommendedPath: LearningPathRecommendation
+}
+
+interface TopicReadiness {
+  topicId: string
+  topicName: string
+  readiness: 'skip' | 'review' | 'learn' | 'deep_dive'
+  confidence: number
+  rationale: string
+}
+
+interface LearningPathRecommendation {
+  pathType: 'skip_course' | 'partial_course' | 'full_course' | 'extended_course'
+  confidence: number
+  reasoning: string
+  
+  // Specific recommendations
+  skipRecommendations: SkipRecommendation[]
+  focusRecommendations: FocusRecommendation[]
+  preparationRecommendations: PreparationRecommendation[]
+}
+```
+
+## Recommendations and Insights
+
+### LearningRecommendation
+
+Personalized recommendations generated based on quiz performance.
+
+```typescript
+interface LearningRecommendation {
+  // Recommendation identification
+  id: string
+  type: RecommendationType
+  priority: 'low' | 'medium' | 'high' | 'critical'
+  
+  // Recommendation content
+  title: string
+  description: string
+  rationale: string         // Why this recommendation is being made
+  
+  // Action details
+  actions: RecommendedAction[]
+  
+  // Targeting
+  targetAudience: 'all_learners' | 'struggling_learners' | 'advanced_learners' | 'specific_gaps'
+  
+  // Confidence and validation
+  confidence: number        // 0-1, confidence in this recommendation
+  evidenceSupport: string[] // Evidence supporting this recommendation
+  
+  // Implementation
+  implementation: ImplementationGuidance
+}
+
+type RecommendationType = 
+  | 'skip_content'
+  | 'review_content'
+  | 'focus_learning'
+  | 'seek_help'
+  | 'practice_more'
+  | 'advanced_study'
+  | 'prerequisite_study'
+  | 'alternative_approach'
+
+interface RecommendedAction {
+  action: string
+  description: string
+  estimatedTime?: number    // Minutes
+  difficulty?: DifficultyLevel
+  resources?: ResourceRecommendation[]
+  measurableOutcome?: string // How to know if action was successful
+}
+
+interface ResourceRecommendation {
+  type: 'video' | 'article' | 'practice_exercise' | 'tutorial' | 'course' | 'book'
+  title: string
+  url?: string
+  description: string
+  estimatedTime?: number
+  difficulty?: DifficultyLevel
+}
+
+interface ImplementationGuidance {
+  when: 'immediately' | 'before_course' | 'during_course' | 'after_course'
+  order: number             // Order relative to other recommendations
+  dependencies: string[]    // Other recommendation IDs that should be completed first
+  timeframe: string         // "within 1 week", "before next module", etc.
+}
+```
+
+### PersonalizedRecommendation
+
+More specific, personalized recommendations based on comprehensive analysis.
+
+```typescript
+interface PersonalizedRecommendation {
+  // Personalization
+  learnerId: string
+  personalizedAt: Date
+  
+  // Content recommendations
+  contentRecommendations: ContentRecommendation[]
+  
+  // Learning strategy recommendations
+  strategyRecommendations: StrategyRecommendation[]
+  
+  // Study plan
+  studyPlan: StudyPlan
+  
+  // Success predictions
+  successPredictions: SuccessPrediction[]
+}
+
+interface ContentRecommendation {
+  contentType: 'skip' | 'review' | 'study' | 'practice' | 'advanced'
+  contentId?: string        // Specific content item if available
+  topicId: string
+  reason: string
+  confidence: number        // 0-1
+  
+  // Specific guidance
+  focusAreas: string[]      // What to focus on within this content
+  timeAllocation: number    // Suggested time in minutes
+  successCriteria: string[] // How to know when they've mastered it
+}
+
+interface StrategyRecommendation {
+  strategy: 'spaced_repetition' | 'active_recall' | 'concept_mapping' | 'practice_testing' | 'elaborative_interrogation'
+  applicability: string[]   // Which topics this strategy applies to
+  implementation: string    // How to implement this strategy
+  rationale: string        // Why this strategy is recommended for this learner
+}
+
+interface StudyPlan {
+  totalEstimatedTime: number // Total time needed in hours
+  suggestedSchedule: ScheduleRecommendation[]
+  milestones: StudyMilestone[]
+  checkpoints: StudyCheckpoint[]
+}
+
+interface ScheduleRecommendation {
+  week: number
+  topic: string
+  activities: string[]
+  timeAllocation: number    // Hours
+  outcomes: string[]
+}
+
+interface StudyMilestone {
+  milestone: string
+  targetDate: Date
+  successCriteria: string[]
+  assessmentMethod: string
+}
+
+interface StudyCheckpoint {
+  checkpoint: string
+  scheduledDate: Date
+  purpose: string
+  actions: string[]
+}
+
+interface SuccessPrediction {
+  outcome: 'course_completion' | 'course_success' | 'skill_mastery' | 'certification_readiness'
+  probability: number       // 0-1
+  timeframe: string
+  factors: PredictionFactor[]
+  improvementActions: string[] // Actions that could improve probability
+}
+
+interface PredictionFactor {
+  factor: string
+  impact: 'positive' | 'negative'
+  weight: number           // 0-1, importance of this factor
+  currentValue: number     // Current level of this factor
+  improvable: boolean      // Whether this factor can be improved
+}
+```
+
+### LearningInsight
+
+Analytical insights derived from quiz performance and learner behavior.
+
+```typescript
+interface LearningInsight {
+  // Insight identification
+  id: string
+  type: InsightType
+  significance: 'minor' | 'moderate' | 'major' | 'critical'
+  
+  // Insight content
+  title: string
+  description: string
+  implications: string[]    // What this insight means for learning
+  
+  // Supporting data
+  supportingData: InsightData[]
+  
+  // Confidence and reliability
+  confidence: number        // 0-1, confidence in this insight
+  reliability: number       // 0-1, how reliable this insight is
+  
+  // Actionability
+  actionable: boolean
+  suggestedActions: string[]
+  
+  // Context
+  contextFactors: ContextFactor[]
+}
+
+type InsightType = 
+  | 'learning_preference'
+  | 'knowledge_pattern'
+  | 'performance_trend'
+  | 'readiness_indicator'
+  | 'challenge_area'
+  | 'strength_area'
+  | 'misconception'
+  | 'engagement_pattern'
+
+interface InsightData {
+  dataType: 'performance_score' | 'time_pattern' | 'response_pattern' | 'behavioral_indicator'
+  value: any
+  description: string
+  weight: number           // 0-1, how much this data contributes to the insight
+}
+
+interface ContextFactor {
+  factor: string
+  value: any
+  impact: 'increases' | 'decreases' | 'modifies' | 'confirms'
+  description: string
+}
+```
+
+## Feedback and Reporting
+
+### ResultsFeedback
+
+Comprehensive feedback provided to learners about their quiz performance.
+
+```typescript
+interface ResultsFeedback {
+  // Overall feedback
+  overallFeedback: FeedbackMessage
+  
+  // Question-specific feedback
+  questionFeedback: QuestionFeedback[]
+  
+  // Topic-specific feedback
+  topicFeedback: TopicFeedback[]
+  
+  // Improvement suggestions
+  improvementSuggestions: ImprovementSuggestion[]
+  
+  // Motivational elements
+  motivationalElements: MotivationalElement[]
+  
+  // Next steps
+  nextSteps: NextStep[]
+}
+
+interface FeedbackMessage {
+  level: 'congratulatory' | 'encouraging' | 'constructive' | 'corrective'
+  message: string
+  tone: 'formal' | 'friendly' | 'motivational' | 'professional'
+  personalization: PersonalizationElement[]
+}
+
+interface PersonalizationElement {
+  type: 'name' | 'performance_reference' | 'goal_reference' | 'strength_reference'
+  value: string
+}
+
+interface QuestionFeedback {
+  questionId: string
+  feedback: string
+  explanation?: string      // Why their answer was right/wrong
+  keyLearningPoints: string[]
+  relatedConcepts: string[]
+  additionalResources?: ResourceReference[]
+}
+
+interface ResourceReference {
+  title: string
+  type: 'video' | 'article' | 'exercise' | 'documentation'
+  url?: string
+  description: string
+}
+
+interface TopicFeedback {
+  topicId: string
+  topicName: string
+  performanceSummary: string
+  strengths: string[]
+  improvementAreas: string[]
+  specificSuggestions: string[]
+}
+
+interface ImprovementSuggestion {
+  area: string
+  currentLevel: string
+  targetLevel: string
+  strategies: string[]
+  resources: ResourceReference[]
+  timeframe: string
+}
+
+interface MotivationalElement {
+  type: 'achievement' | 'progress' | 'effort_recognition' | 'growth_mindset'
+  message: string
+  evidence: string[]        // What supports this motivational message
+}
+
+interface NextStep {
+  step: string
+  description: string
+  rationale: string
+  priority: 'immediate' | 'short_term' | 'medium_term' | 'long_term'
+  estimatedTime?: number
+  successCriteria: string[]
+}
+```
+
+### PerformanceBenchmarks
+
+Comparative performance data to provide context for learner results.
+
+```typescript
+interface PerformanceBenchmarks {
+  // Benchmark categories
+  benchmarks: BenchmarkCategory[]
+  
+  // Learner's position
+  learnerPosition: BenchmarkPosition[]
+  
+  // Trends and patterns
+  trends: BenchmarkTrend[]
+  
+  // Statistical context
+  statisticalContext: StatisticalContext
+}
+
+interface BenchmarkCategory {
+  category: 'all_learners' | 'similar_background' | 'same_course' | 'industry_standard' | 'expert_level'
+  description: string
+  sampleSize: number
+  timeframe: string         // "last 30 days", "all time", etc.
+  
+  // Performance statistics
+  statistics: BenchmarkStatistics
+}
+
+interface BenchmarkStatistics {
+  mean: number
+  median: number
+  standardDeviation: number
+  percentiles: PercentileData[]
+  
+  // Distribution information
+  distribution: ScoreDistribution[]
+  
+  // Performance ranges
+  ranges: PerformanceRange[]
+}
+
+interface PercentileData {
+  percentile: number        // 10th, 25th, 50th, 75th, 90th
+  score: number
+}
+
+interface PerformanceRange {
+  range: 'poor' | 'below_average' | 'average' | 'above_average' | 'excellent'
+  minScore: number
+  maxScore: number
+  percentage: number        // Percentage of learners in this range
+}
+
+interface BenchmarkPosition {
+  benchmarkCategory: string
+  percentileRank: number    // 0-100
+  relativePerformance: 'well_below' | 'below' | 'at' | 'above' | 'well_above'
+  scoreDifference: number   // Difference from benchmark mean
+  interpretation: string    // What this position means
+}
+
+interface BenchmarkTrend {
+  metric: 'average_score' | 'completion_rate' | 'time_to_complete'
+  direction: 'improving' | 'declining' | 'stable'
+  magnitude: number         // Size of change
+  timeframe: string
+  significance: 'not_significant' | 'marginally_significant' | 'significant' | 'highly_significant'
+}
+
+interface StatisticalContext {
+  confidenceLevel: number   // 0-1, confidence in benchmark comparisons
+  sampleReliability: number // 0-1, reliability of benchmark sample
+  limitations: string[]     // Limitations of the benchmark data
+  lastUpdated: Date
+}
+```
+
+## Usage Examples
+
+### Creating Quiz Results
+
+```typescript
+// Example: Processing a completed quiz attempt
+const quizResults: QuizResults = {
+  id: 'results_789',
+  attemptId: 'attempt_456',
+  
+  overallScore: 78,
+  passingStatus: 'passed',
+  
+  scoring: {
+    totalScore: 78,
+    rawScore: 39,
+    maxPossible: 50,
+    
+    scoreBreakdown: {
+      byQuestionType: [
+        {
+          questionType: 'multiple_choice',
+          score: 80,
+          questionsAnswered: 5,
+          questionsCorrect: 4,
+          averageTime: 45
+        },
+        {
+          questionType: 'true_false',
+          score: 100,
+          questionsAnswered: 3,
+          questionsCorrect: 3,
+          averageTime: 20
+        },
+        {
+          questionType: 'short_answer',
+          score: 60,
+          questionsAnswered: 2,
+          questionsCorrect: 1,
+          averageTime: 120
+        }
+      ],
+      byTopic: [
+        {
+          topicId: 'topic_ml_basics',
+          topicName: 'Machine Learning Basics',
+          score: 85,
+          questionsAnswered: 6,
+          questionsCorrect: 5,
+          weight: 0.6,
+          confidence: 0.82
+        },
+        {
+          topicId: 'topic_algorithms',
+          topicName: 'ML Algorithms',
+          score: 67,
+          questionsAnswered: 4,
+          questionsCorrect: 2,
+          weight: 0.4,
+          confidence: 0.65
+        }
+      ],
+      byDifficulty: [
+        {
+          difficulty: 'easy',
+          score: 100,
+          questionsAnswered: 3,
+          questionsCorrect: 3,
+          expectedScore: 90
+        },
+        {
+          difficulty: 'medium',
+          score: 80,
+          questionsAnswered: 5,
+          questionsCorrect: 4,
+          expectedScore: 70
+        },
+        {
+          difficulty: 'hard',
+          score: 50,
+          questionsAnswered: 2,
+          questionsCorrect: 1,
+          expectedScore: 50
+        }
+      ],
+      byBloomsLevel: [
+        {
+          level: 'remember',
+          score: 100,
+          questionsAnswered: 2,
+          questionsCorrect: 2
+        },
+        {
+          level: 'understand',
+          score: 75,
+          questionsAnswered: 4,
+          questionsCorrect: 3
+        },
+        {
+          level: 'apply',
+          score: 67,
+          questionsAnswered: 3,
+          questionsCorrect: 2
+        },
+        {
+          level: 'analyze',
+          score: 100,
+          questionsAnswered: 1,
+          questionsCorrect: 1
+        }
+      ]
+    },
+    
+    comparativeScores: [
+      {
+        comparisonType: 'all_learners',
+        percentile: 72,
+        averageScore: 71,
+        sampleSize: 1247
+      },
+      {
+        comparisonType: 'similar_experience',
+        percentile: 65,
+        averageScore: 74,
+        sampleSize: 89
+      }
+    ],
+    
+    reliability: {
+      confidence: 0.87,
+      factors: [
+        {
+          factor: 'learner_engagement',
+          impact: 'positive',
+          magnitude: 0.8,
+          description: 'Learner showed consistent engagement throughout quiz'
+        },
+        {
+          factor: 'time_pressure',
+          impact: 'negative',
+          magnitude: 0.3,
+          description: 'Some questions were answered quickly, possibly due to time pressure'
+        }
+      ],
+      recommendations: [
+        'Consider allowing more time for short answer questions',
+        'Monitor for signs of rushing in future assessments'
+      ]
+    }
+  },
+  
+  topicAnalysis: [
+    {
+      topicId: 'topic_ml_basics',
+      topicName: 'Machine Learning Basics',
+      score: 85,
+      questionsAnswered: 6,
+      questionsCorrect: 5,
+      weight: 0.6,
+      confidence: 0.82,
+      performanceLevel: 'proficient',
+      strengths: [
+        'Clear understanding of supervised vs unsupervised learning',
+        'Good grasp of fundamental terminology'
+      ],
+      weaknesses: [
+        'Some confusion about overfitting concepts'
+      ],
+      recommendations: [
+        'Review overfitting and regularization concepts',
+        'Consider moving to intermediate ML topics'
+      ]
+    }
+  ],
+  
+  insights: [
+    {
+      id: 'insight_001',
+      type: 'strength_area',
+      significance: 'moderate',
+      title: 'Strong Conceptual Foundation',
+      description: 'Learner demonstrates solid understanding of fundamental ML concepts',
+      implications: [
+        'Ready for more advanced topics',
+        'Can likely skip basic review material'
+      ],
+      supportingData: [
+        {
+          dataType: 'performance_score',
+          value: 85,
+          description: 'High score on foundational concepts',
+          weight: 0.8
+        }
+      ],
+      confidence: 0.85,
+      reliability: 0.78,
+      actionable: true,
+      suggestedActions: [
+        'Proceed to intermediate ML algorithms',
+        'Focus learning time on practical applications'
+      ],
+      contextFactors: [
+        {
+          factor: 'prior_experience',
+          value: 'some programming background',
+          impact: 'increases',
+          description: 'Programming experience supports conceptual understanding'
+        }
+      ]
+    }
+  ],
+  
+  recommendations: [
+    {
+      id: 'rec_001',
+      type: 'focus_learning',
+      priority: 'high',
+      title: 'Deep Dive into ML Algorithms',
+      description: 'Focus your learning on understanding different ML algorithms and their applications',
+      rationale: 'Your strong foundational knowledge makes you ready for algorithmic details',
+      actions: [
+        {
+          action: 'Study supervised learning algorithms',
+          description: 'Learn about decision trees, random forests, and SVM',
+          estimatedTime: 240,
+          difficulty: 'intermediate',
+          resources: [
+            {
+              type: 'video',
+              title: 'Supervised Learning Deep Dive',
+              url: 'https://example.com/video',
+              description: 'Comprehensive video series on supervised learning',
+              estimatedTime: 180,
+              difficulty: 'intermediate'
+            }
+          ],
+          measurableOutcome: 'Can explain the differences between major supervised learning algorithms'
+        }
+      ],
+      targetAudience: 'advanced_learners',
+      confidence: 0.88,
+      evidenceSupport: [
+        'High performance on foundational concepts',
+        'Quick completion times suggest efficiency',
+        'Correct answers on conceptual questions'
+      ],
+      implementation: {
+        when: 'immediately',
+        order: 1,
+        dependencies: [],
+        timeframe: 'within 1 week'
+      }
+    }
+  ],
+  
+  feedback: {
+    overallFeedback: {
+      level: 'congratulatory',
+      message: 'Excellent work! You have demonstrated a solid understanding of machine learning fundamentals and are ready to tackle more advanced topics.',
+      tone: 'encouraging',
+      personalization: [
+        {
+          type: 'performance_reference',
+          value: 'Your 78% score puts you in the top 28% of all learners'
+        },
+        {
+          type: 'strength_reference',
+          value: 'Your particular strength in conceptual understanding'
+        }
+      ]
+    },
+    questionFeedback: [
+      {
+        questionId: 'question_001',
+        feedback: 'Perfect! You correctly identified the key difference between supervised and unsupervised learning.',
+        explanation: 'Supervised learning uses labeled data to train models, while unsupervised learning finds patterns in unlabeled data.',
+        keyLearningPoints: [
+          'The role of labeled data in machine learning',
+          'Different approaches to pattern recognition'
+        ],
+        relatedConcepts: ['supervised_learning', 'unsupervised_learning', 'training_data']
+      }
+    ],
+    topicFeedback: [
+      {
+        topicId: 'topic_ml_basics',
+        topicName: 'Machine Learning Basics',
+        performanceSummary: 'Strong performance with 85% accuracy',
+        strengths: [
+          'Clear understanding of core concepts',
+          'Good definitional knowledge'
+        ],
+        improvementAreas: [
+          'Overfitting and regularization'
+        ],
+        specificSuggestions: [
+          'Review the relationship between model complexity and overfitting',
+          'Practice identifying overfitting in example scenarios'
+        ]
+      }
+    ],
+    improvementSuggestions: [
+      {
+        area: 'Algorithm Understanding',
+        currentLevel: 'Basic',
+        targetLevel: 'Intermediate',
+        strategies: [
+          'Work through algorithm implementations',
+          'Compare performance of different algorithms on same dataset',
+          'Study mathematical foundations of key algorithms'
+        ],
+        resources: [
+          {
+            title: 'Hands-On Machine Learning',
+            type: 'book',
+            description: 'Practical guide to ML algorithms with code examples'
+          }
+        ],
+        timeframe: '2-3 weeks'
+      }
+    ],
+    motivationalElements: [
+      {
+        type: 'achievement',
+        message: 'You have mastered the foundational concepts of machine learning!',
+        evidence: [
+          '85% performance on fundamental concepts',
+          'Consistent correct answers on definitional questions'
+        ]
+      }
+    ],
+    nextSteps: [
+      {
+        step: 'Begin intermediate algorithm study',
+        description: 'Start learning about specific ML algorithms like decision trees and neural networks',
+        rationale: 'Your strong foundation makes you ready for algorithmic details',
+        priority: 'immediate',
+        estimatedTime: 240,
+        successCriteria: [
+          'Can explain how decision trees make predictions',
+          'Understands basic neural network architecture',
+          'Can compare pros and cons of different algorithms'
+        ]
+      }
+    ]
+  },
+  
+  benchmarks: {
+    benchmarks: [
+      {
+        category: 'all_learners',
+        description: 'All learners who have taken this quiz',
+        sampleSize: 1247,
+        timeframe: 'last 6 months',
+        statistics: {
+          mean: 71.2,
+          median: 73.0,
+          standardDeviation: 12.8,
+          percentiles: [
+            { percentile: 25, score: 62 },
+            { percentile: 50, score: 73 },
+            { percentile: 75, score: 81 },
+            { percentile: 90, score: 87 }
+          ],
+          distribution: [
+            { scoreRange: '0-59', count: 187, percentage: 15 },
+            { scoreRange: '60-69', count: 312, percentage: 25 },
+            { scoreRange: '70-79', count: 436, percentage: 35 },
+            { scoreRange: '80-89', count: 249, percentage: 20 },
+            { scoreRange: '90-100', count: 63, percentage: 5 }
+          ],
+          ranges: [
+            { range: 'poor', minScore: 0, maxScore: 59, percentage: 15 },
+            { range: 'below_average', minScore: 60, maxScore: 69, percentage: 25 },
+            { range: 'average', minScore: 70, maxScore: 79, percentage: 35 },
+            { range: 'above_average', minScore: 80, maxScore: 89, percentage: 20 },
+            { range: 'excellent', minScore: 90, maxScore: 100, percentage: 5 }
+          ]
+        }
+      }
+    ],
+    learnerPosition: [
+      {
+        benchmarkCategory: 'all_learners',
+        percentileRank: 72,
+        relativePerformance: 'above',
+        scoreDifference: 6.8,
+        interpretation: 'Your score is above the average of all learners who have taken this quiz'
+      }
+    ],
+    trends: [
+      {
+        metric: 'average_score',
+        direction: 'improving',
+        magnitude: 2.3,
+        timeframe: 'last 3 months',
+        significance: 'marginally_significant'
+      }
+    ],
+    statisticalContext: {
+      confidenceLevel: 0.95,
+      sampleReliability: 0.89,
+      limitations: [
+        'Benchmark includes learners from different backgrounds',
+        'Sample may not represent all target populations'
+      ],
+      lastUpdated: new Date('2025-07-01')
+    }
+  }
+}
+```
+
+## Related Documentation
+
+- [Content Schema](/technical/data-models/content-schema) - Source data structures that inform quiz generation
+- [Quiz Schema](/technical/data-models/quiz-schema) - Quiz and question data structures that generate these results
+- [System Architecture](/technical/architecture/system-overview) - How results processing fits into the overall system
+- [API Reference](/api-reference/results-processing) - API endpoints for results and analytics

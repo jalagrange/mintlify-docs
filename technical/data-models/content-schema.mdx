@@ -1,0 +1,611 @@
+---
+title: Content Schema
+description: Unified data structures for content ingestion and processing
+---
+
+# Content Schema
+
+This document defines the unified content schema used throughout the Dynamic Quiz Creator system. All content, regardless of source format (PDF, HTML, video transcript), is normalized to these standardized data structures.
+
+<Callout type="info">
+  **Implementation Priority**: These schemas are foundational for MVP development and should be implemented first before quiz generation agents.
+</Callout>
+
+## Core Content Interfaces
+
+### UnifiedContentSchema
+
+The primary data structure representing processed content ready for quiz generation.
+
+```typescript
+interface UnifiedContentSchema {
+  // Content identification
+  id: string
+  contentType: ContentType
+  sourceFormat: 'pdf' | 'html' | 'video_transcript' | 'text'
+  
+  // Content metadata
+  metadata: ContentMetadata
+  
+  // Processed content structure
+  structure: ContentStructure
+  
+  // Topic and concept extraction
+  topics: TopicExtraction[]
+  concepts: ConceptMap[]
+  
+  // Processing information
+  processing: ProcessingInfo
+  
+  // Quality assessment
+  quality: ContentQuality
+}
+```
+
+### ContentMetadata
+
+Metadata extracted from source content during processing.
+
+```typescript
+interface ContentMetadata {
+  // Basic information
+  title: string
+  description?: string
+  language: string
+  
+  // Source information
+  source: {
+    originalFilename?: string
+    url?: string
+    uploadDate: Date
+    fileSize?: number
+    mimeType?: string
+  }
+  
+  // Content characteristics
+  estimatedReadingTime: number // minutes
+  difficulty?: 'beginner' | 'intermediate' | 'advanced'
+  domain?: string // e.g., 'technology', 'business', 'healthcare'
+  
+  // Author information (if available)
+  author?: {
+    name: string
+    email?: string
+    organization?: string
+  }
+  
+  // Version control
+  version: string
+  lastModified: Date
+  contentHash: string
+}
+```
+
+### ContentStructure
+
+Hierarchical representation of content organization.
+
+```typescript
+interface ContentStructure {
+  // Document structure
+  sections: ContentSection[]
+  
+  // Cross-references and links
+  references: ContentReference[]
+  
+  // Media elements
+  media: MediaElement[]
+  
+  // Appendices and supplementary content
+  appendices?: ContentSection[]
+}
+
+interface ContentSection {
+  id: string
+  type: 'chapter' | 'section' | 'subsection' | 'paragraph' | 'list' | 'table'
+  title?: string
+  content: string
+  
+  // Hierarchical structure
+  level: number // 1 = top level, higher numbers = deeper nesting
+  parentId?: string
+  children?: ContentSection[]
+  
+  // Position information
+  order: number
+  wordCount: number
+  
+  // Content analysis
+  keyTerms: string[]
+  complexity: number // 1-10 scale
+  topics: string[] // Topic IDs this section relates to
+}
+
+interface ContentReference {
+  id: string
+  type: 'internal_link' | 'external_link' | 'citation' | 'cross_reference'
+  sourceSection: string
+  targetSection?: string
+  url?: string
+  description: string
+}
+
+interface MediaElement {
+  id: string
+  type: 'image' | 'video' | 'audio' | 'diagram' | 'chart'
+  url?: string
+  caption?: string
+  altText?: string
+  relatedSections: string[] // Section IDs where this media is referenced
+  
+  // For video/audio content
+  duration?: number
+  transcript?: string
+  
+  // For diagrams/charts
+  dataPoints?: Record<string, any>
+}
+```
+
+## Topic and Concept Modeling
+
+### TopicExtraction
+
+Represents identified topics and their relationships within the content.
+
+```typescript
+interface TopicExtraction {
+  id: string
+  name: string
+  description: string
+  
+  // Topic characteristics
+  importance: number // 0-1, how central this topic is to the content
+  coverage: number // 0-1, how thoroughly the topic is covered
+  difficulty: number // 1-10 scale
+  
+  // Content mapping
+  sections: string[] // Section IDs where this topic appears
+  keyTerms: string[]
+  relatedTopics: string[] // Other topic IDs
+  
+  // Learning objectives
+  objectives?: LearningObjective[]
+  
+  // Quiz generation hints
+  quizHints: TopicQuizHints
+}
+
+interface LearningObjective {
+  id: string
+  description: string
+  bloomsLevel: 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create'
+  assessable: boolean // Whether this objective can be assessed through quiz questions
+}
+
+interface TopicQuizHints {
+  // Suggested question types for this topic
+  preferredQuestionTypes: QuestionType[]
+  
+  // Difficulty distribution suggestions
+  difficultyDistribution: {
+    easy: number    // percentage (0-1)
+    medium: number  // percentage (0-1) 
+    hard: number    // percentage (0-1)
+  }
+  
+  // Key concepts that should be tested
+  mustTestConcepts: string[]
+  
+  // Concepts to avoid in questions
+  avoidConcepts: string[]
+}
+```
+
+### ConceptMap
+
+Detailed concept extraction with relationships and definitions.
+
+```typescript
+interface ConceptMap {
+  id: string
+  term: string
+  definition: string
+  
+  // Concept characteristics
+  type: 'definition' | 'process' | 'principle' | 'example' | 'fact'
+  importance: number // 0-1 scale
+  complexity: number // 1-10 scale
+  
+  // Relationships to other concepts
+  relationships: ConceptRelationship[]
+  
+  // Content context
+  contexts: ConceptContext[]
+  
+  // Synonyms and variations
+  synonyms: string[]
+  abbreviations: string[]
+}
+
+interface ConceptRelationship {
+  type: 'prerequisite' | 'related' | 'opposite' | 'example_of' | 'part_of'
+  targetConceptId: string
+  strength: number // 0-1, how strong the relationship is
+}
+
+interface ConceptContext {
+  sectionId: string
+  usage: string // How the concept is used in this section
+  isDefinition: boolean // Whether this section defines the concept
+  examples: string[] // Examples of the concept from this section
+}
+```
+
+## Content Processing Information
+
+### ProcessingInfo
+
+Metadata about how the content was processed and transformed.
+
+```typescript
+interface ProcessingInfo {
+  // Processing timestamps
+  processedAt: Date
+  processingDuration: number // milliseconds
+  
+  // Agent information
+  processedBy: {
+    orchestratorVersion: string
+    agentVersions: Record<string, string> // agent name -> version
+  }
+  
+  // Processing statistics
+  statistics: ProcessingStatistics
+  
+  // Any warnings or issues encountered
+  warnings: ProcessingWarning[]
+  
+  // Confidence scores
+  confidence: ProcessingConfidence
+}
+
+interface ProcessingStatistics {
+  originalSize: number // bytes
+  processedSize: number // bytes
+  compressionRatio: number
+  
+  // Content analysis
+  totalWords: number
+  totalSentences: number
+  totalParagraphs: number
+  totalSections: number
+  
+  // Extraction statistics
+  topicsExtracted: number
+  conceptsExtracted: number
+  mediaElementsFound: number
+  referencesFound: number
+}
+
+interface ProcessingWarning {
+  type: 'content_quality' | 'format_issue' | 'extraction_error' | 'validation_warning'
+  message: string
+  section?: string
+  severity: 'low' | 'medium' | 'high'
+}
+
+interface ProcessingConfidence {
+  overall: number // 0-1, overall confidence in processing quality
+  
+  // Specific confidence scores
+  topicExtraction: number
+  conceptExtraction: number
+  structureAnalysis: number
+  contentQuality: number
+}
+```
+
+### ContentQuality
+
+Assessment of content suitability for quiz generation.
+
+```typescript
+interface ContentQuality {
+  // Overall quality score
+  overallScore: number // 0-100
+  
+  // Specific quality dimensions
+  dimensions: QualityDimensions
+  
+  // Recommendations for quiz generation
+  recommendations: QualityRecommendation[]
+  
+  // Issues that might affect quiz quality
+  issues: QualityIssue[]
+}
+
+interface QualityDimensions {
+  clarity: number          // 0-100, how clear and understandable the content is
+  completeness: number     // 0-100, how complete the topic coverage is
+  accuracy: number         // 0-100, estimated accuracy of factual content
+  structure: number        // 0-100, how well-structured the content is
+  assessability: number    // 0-100, how suitable for creating quiz questions
+}
+
+interface QualityRecommendation {
+  type: 'generate_quiz' | 'improve_content' | 'manual_review' | 'skip_generation'
+  confidence: number // 0-1
+  reasoning: string
+  
+  // Specific recommendations
+  suggestedQuestionTypes?: QuestionType[]
+  focusTopics?: string[]
+  avoidTopics?: string[]
+}
+
+interface QualityIssue {
+  type: 'low_clarity' | 'incomplete_coverage' | 'factual_concerns' | 'poor_structure' | 'unsuitable_content'
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  description: string
+  affectedSections: string[]
+  suggestedAction: string
+}
+```
+
+## Content Types and Enums
+
+### Core Enumerations
+
+```typescript
+type ContentType = 
+  | 'course_material'
+  | 'documentation'
+  | 'presentation'
+  | 'video_content'
+  | 'reference_material'
+  | 'training_manual'
+
+type QuestionType = 
+  | 'multiple_choice'
+  | 'true_false'
+  | 'fill_blank'
+  | 'short_answer'
+
+// Language codes following ISO 639-1
+type LanguageCode = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'ja' // extensible
+
+// Content difficulty levels
+type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced'
+
+// Bloom's taxonomy levels for learning objectives
+type BloomsLevel = 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create'
+```
+
+## Validation Rules
+
+### Content Schema Validation
+
+```typescript
+interface ContentValidationRules {
+  // Required fields validation
+  requiredFields: {
+    id: boolean
+    contentType: boolean
+    metadata: {
+      title: boolean
+      language: boolean
+    }
+    structure: {
+      sections: boolean // At least one section required
+    }
+  }
+  
+  // Field constraints
+  constraints: {
+    maxTitleLength: number
+    maxDescriptionLength: number
+    maxSectionNesting: number
+    minWordCount: number
+    maxWordCount: number
+  }
+  
+  // Quality thresholds
+  qualityThresholds: {
+    minimumOverallScore: number
+    minimumAssessabilityScore: number
+    maximumCriticalIssues: number
+  }
+}
+
+// Default validation rules for MVP
+const DEFAULT_VALIDATION_RULES: ContentValidationRules = {
+  requiredFields: {
+    id: true,
+    contentType: true,
+    metadata: {
+      title: true,
+      language: true
+    },
+    structure: {
+      sections: true
+    }
+  },
+  constraints: {
+    maxTitleLength: 200,
+    maxDescriptionLength: 1000,
+    maxSectionNesting: 6,
+    minWordCount: 100,
+    maxWordCount: 50000
+  },
+  qualityThresholds: {
+    minimumOverallScore: 60,
+    minimumAssessabilityScore: 70,
+    maximumCriticalIssues: 0
+  }
+}
+```
+
+## Usage Examples
+
+### Creating a Unified Content Schema
+
+```typescript
+// Example: Processing a PDF document
+const processedContent: UnifiedContentSchema = {
+  id: 'content_123',
+  contentType: 'course_material',
+  sourceFormat: 'pdf',
+  
+  metadata: {
+    title: 'Introduction to Machine Learning',
+    description: 'Comprehensive guide to ML fundamentals',
+    language: 'en',
+    source: {
+      originalFilename: 'ml_guide.pdf',
+      uploadDate: new Date('2025-07-01'),
+      fileSize: 2048576,
+      mimeType: 'application/pdf'
+    },
+    estimatedReadingTime: 45,
+    difficulty: 'intermediate',
+    domain: 'technology',
+    version: '1.0.0',
+    lastModified: new Date('2025-07-01'),
+    contentHash: 'sha256:abc123...'
+  },
+  
+  structure: {
+    sections: [
+      {
+        id: 'section_1',
+        type: 'chapter',
+        title: 'What is Machine Learning?',
+        content: 'Machine learning is a subset of artificial intelligence...',
+        level: 1,
+        order: 1,
+        wordCount: 1250,
+        keyTerms: ['machine learning', 'artificial intelligence', 'algorithms'],
+        complexity: 6,
+        topics: ['topic_ml_basics']
+      }
+      // ... more sections
+    ],
+    references: [],
+    media: []
+  },
+  
+  topics: [
+    {
+      id: 'topic_ml_basics',
+      name: 'Machine Learning Basics',
+      description: 'Fundamental concepts of machine learning',
+      importance: 0.95,
+      coverage: 0.8,
+      difficulty: 6,
+      sections: ['section_1', 'section_2'],
+      keyTerms: ['supervised learning', 'unsupervised learning'],
+      relatedTopics: ['topic_algorithms'],
+      quizHints: {
+        preferredQuestionTypes: ['multiple_choice', 'true_false'],
+        difficultyDistribution: {
+          easy: 0.3,
+          medium: 0.5,
+          hard: 0.2
+        },
+        mustTestConcepts: ['supervised vs unsupervised'],
+        avoidConcepts: ['advanced mathematical proofs']
+      }
+    }
+  ],
+  
+  concepts: [
+    {
+      id: 'concept_ml',
+      term: 'Machine Learning',
+      definition: 'A method of data analysis that automates analytical model building',
+      type: 'definition',
+      importance: 1.0,
+      complexity: 7,
+      relationships: [
+        {
+          type: 'part_of',
+          targetConceptId: 'concept_ai',
+          strength: 0.9
+        }
+      ],
+      contexts: [
+        {
+          sectionId: 'section_1',
+          usage: 'Primary definition and introduction',
+          isDefinition: true,
+          examples: ['email spam detection', 'recommendation systems']
+        }
+      ],
+      synonyms: ['ML'],
+      abbreviations: ['ML']
+    }
+  ],
+  
+  processing: {
+    processedAt: new Date('2025-07-01T10:00:00Z'),
+    processingDuration: 15000,
+    processedBy: {
+      orchestratorVersion: '1.0.0',
+      agentVersions: {
+        'pdf_ingestor': '1.0.0',
+        'topic_extractor': '1.0.0'
+      }
+    },
+    statistics: {
+      originalSize: 2048576,
+      processedSize: 1024288,
+      compressionRatio: 0.5,
+      totalWords: 12500,
+      totalSentences: 850,
+      totalParagraphs: 125,
+      totalSections: 8,
+      topicsExtracted: 12,
+      conceptsExtracted: 45,
+      mediaElementsFound: 3,
+      referencesFound: 0
+    },
+    warnings: [],
+    confidence: {
+      overall: 0.92,
+      topicExtraction: 0.88,
+      conceptExtraction: 0.90,
+      structureAnalysis: 0.95,
+      contentQuality: 0.93
+    }
+  },
+  
+  quality: {
+    overallScore: 92,
+    dimensions: {
+      clarity: 90,
+      completeness: 85,
+      accuracy: 95,
+      structure: 88,
+      assessability: 92
+    },
+    recommendations: [
+      {
+        type: 'generate_quiz',
+        confidence: 0.92,
+        reasoning: 'High-quality content with good structure and clear concepts',
+        suggestedQuestionTypes: ['multiple_choice', 'true_false', 'short_answer'],
+        focusTopics: ['topic_ml_basics', 'topic_algorithms']
+      }
+    ],
+    issues: []
+  }
+}
+```
+
+## Related Documentation
+
+- [Quiz Schema](/technical/data-models/quiz-schema) - Data structures for generated quizzes
+- [Results Schema](/technical/data-models/results-schema) - Scoring and recommendation data
+- [System Architecture](/technical/architecture/system-overview) - How these schemas fit into the overall system
+- [API Reference](/api-reference/content-processing) - API endpoints that use these schemas

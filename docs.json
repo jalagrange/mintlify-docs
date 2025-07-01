@@ -33,6 +33,14 @@
             ]
           },
           {
+            "group": "Data Models",
+            "pages": [
+              "technical/data-models/content-schema",
+              "technical/data-models/quiz-schema",
+              "technical/data-models/results-schema"
+            ]
+          },
+          {
             "group": "Development",
             "pages": [
               "technical/development/local-setup"

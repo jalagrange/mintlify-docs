@@ -1,0 +1,1082 @@
+---
+title: Quiz Schema
+description: Data structures for quiz generation, questions, and assessment configuration
+---
+
+# Quiz Schema
+
+This document defines the data structures used for quiz generation, question management, and assessment configuration in the Dynamic Quiz Creator system.
+
+<Callout type="info">
+  **Context**: These schemas work with [Content Schema](/technical/data-models/content-schema) data to generate assessments and feed into [Results Schema](/technical/data-models/results-schema) for scoring.
+</Callout>
+
+## Core Quiz Interfaces
+
+### DraftQuiz
+
+The primary data structure representing a generated quiz before human review and approval.
+
+```typescript
+interface DraftQuiz {
+  // Quiz identification
+  id: string
+  contentId: string // References UnifiedContentSchema.id
+  
+  // Quiz metadata
+  metadata: QuizMetadata
+  
+  // Quiz configuration
+  configuration: QuizConfiguration
+  
+  // Generated questions
+  questions: Question[]
+  
+  // Generation information
+  generation: QuizGeneration
+  
+  // Review status
+  review: ReviewStatus
+  
+  // Quality assessment
+  quality: QuizQuality
+}
+```
+
+### PublishedQuiz
+
+A quiz that has been reviewed, approved, and is ready for learner access.
+
+```typescript
+interface PublishedQuiz {
+  // Inherits from DraftQuiz but with additional fields
+  id: string
+  draftId: string // Reference to original draft
+  contentId: string
+  
+  // Published metadata
+  metadata: QuizMetadata
+  configuration: QuizConfiguration
+  questions: Question[]
+  
+  // Publication information
+  publication: PublicationInfo
+  
+  // Performance tracking
+  analytics: QuizAnalytics
+  
+  // Versioning
+  version: QuizVersion
+}
+```
+
+## Quiz Metadata and Configuration
+
+### QuizMetadata
+
+Basic information about the quiz and its purpose.
+
+```typescript
+interface QuizMetadata {
+  // Basic information
+  title: string
+  description?: string
+  instructions: string
+  
+  // Learning context
+  topics: TopicReference[]
+  learningObjectives: string[]
+  difficulty: DifficultyLevel
+  
+  // Administrative
+  author: AuthorInfo
+  subject: string
+  tags: string[]
+  
+  // Timing and access
+  estimatedDuration: number // minutes
+  language: LanguageCode
+  
+  // Content relationship
+  contentSource: ContentSourceInfo
+}
+
+interface TopicReference {
+  id: string
+  name: string
+  weight: number // 0-1, importance in this quiz
+  questionCount: number
+}
+
+interface AuthorInfo {
+  id: string
+  name: string
+  email?: string
+  role: 'content_author' | 'subject_expert' | 'instructional_designer'
+}
+
+interface ContentSourceInfo {
+  title: string
+  type: ContentType
+  sections: string[] // Section IDs from content that inform this quiz
+  processingDate: Date
+}
+```
+
+### QuizConfiguration
+
+Settings that control how the quiz is generated and presented.
+
+```typescript
+interface QuizConfiguration {
+  // Question composition
+  questionMix: QuestionTypeDistribution[]
+  totalQuestions: number
+  
+  // Difficulty distribution
+  difficultyDistribution: DifficultyDistribution
+  
+  // Quiz behavior
+  behavior: QuizBehavior
+  
+  // Scoring settings
+  scoring: ScoringConfiguration
+  
+  // Time limits
+  timing: TimingConfiguration
+  
+  // Randomization
+  randomization: RandomizationSettings
+}
+
+interface QuestionTypeDistribution {
+  type: QuestionType
+  count: number
+  percentage: number
+  priority: 'required' | 'preferred' | 'optional'
+}
+
+interface DifficultyDistribution {
+  easy: number    // count
+  medium: number  // count
+  hard: number    // count
+}
+
+interface QuizBehavior {
+  allowReview: boolean          // Can learners review answers before submitting
+  allowRetake: boolean          // Can learners retake the quiz
+  maxAttempts?: number         // Maximum number of attempts (if allowRetake is true)
+  showCorrectAnswers: boolean   // Show correct answers after completion
+  showExplanations: boolean     // Show explanations for answers
+  requireAllQuestions: boolean  // Must answer all questions to submit
+}
+
+interface ScoringConfiguration {
+  passingScore?: number         // Minimum score to pass (0-100)
+  weightedScoring: boolean      // Use question difficulty for weighting
+  partialCredit: boolean        // Allow partial credit for some question types
+  topicWeighting: TopicWeight[] // Different topics can have different weights
+}
+
+interface TopicWeight {
+  topicId: string
+  weight: number // Multiplier for questions from this topic
+}
+
+interface TimingConfiguration {
+  timeLimit?: number           // Total time limit in minutes
+  questionTimeLimit?: number   // Per-question time limit in seconds
+  showTimer: boolean          // Display countdown timer to learner
+  warningTime?: number        // Show warning when this many minutes remain
+}
+
+interface RandomizationSettings {
+  randomizeQuestions: boolean  // Randomize question order
+  randomizeAnswers: boolean    // Randomize answer choices within questions
+  questionPool?: number        // If set, randomly select this many from total questions
+}
+```
+
+## Question Data Structures
+
+### Question
+
+Base interface for all question types with common properties.
+
+```typescript
+interface Question {
+  // Question identification
+  id: string
+  type: QuestionType
+  
+  // Question content
+  content: QuestionContent
+  
+  // Answer configuration
+  answers: Answer[]
+  correctAnswers: string[] // Answer IDs that are correct
+  
+  // Question metadata
+  metadata: QuestionMetadata
+  
+  // Quality and validation
+  validation: QuestionValidation
+  
+  // Generation information
+  generation: QuestionGeneration
+}
+
+interface QuestionContent {
+  // Main question text
+  text: string
+  
+  // Additional context or instructions
+  context?: string
+  instructions?: string
+  
+  // Media elements
+  media?: MediaReference[]
+  
+  // Formatting hints for UI
+  formatting?: QuestionFormatting
+}
+
+interface MediaReference {
+  type: 'image' | 'video' | 'audio' | 'diagram'
+  url: string
+  altText?: string
+  caption?: string
+}
+
+interface QuestionFormatting {
+  codeHighlighting?: boolean
+  mathRendering?: boolean
+  preserveWhitespace?: boolean
+}
+```
+
+### Answer
+
+Represents possible answers for questions.
+
+```typescript
+interface Answer {
+  id: string
+  text: string
+  
+  // Answer metadata
+  explanation?: string        // Why this answer is correct/incorrect
+  media?: MediaReference[]   // Supporting media for this answer
+  
+  // For scoring
+  weight?: number           // For partial credit scoring (0-1)
+  
+  // Answer-specific properties
+  properties?: AnswerProperties
+}
+
+interface AnswerProperties {
+  // For fill-in-the-blank questions
+  acceptedVariations?: string[]  // Alternative acceptable answers
+  caseSensitive?: boolean
+  exactMatch?: boolean
+  
+  // For short answer questions
+  keyTerms?: string[]           // Important terms that should be present
+  minimumLength?: number
+  maximumLength?: number
+  
+  // For matching questions (future)
+  matchTarget?: string
+}
+```
+
+### Question Type Specific Interfaces
+
+#### Multiple Choice Questions
+
+```typescript
+interface MultipleChoiceQuestion extends Question {
+  type: 'multiple_choice'
+  
+  // MC-specific configuration
+  multipleCorrect: boolean    // Can have more than one correct answer
+  minSelections?: number      // Minimum selections required
+  maxSelections?: number      // Maximum selections allowed
+  
+  // Distractor analysis
+  distractors: DistractorAnalysis[]
+}
+
+interface DistractorAnalysis {
+  answerId: string
+  plausibility: number        // 0-1, how plausible this wrong answer is
+  commonMisconception?: string // What misconception this tests
+  source: 'generated' | 'extracted' | 'manual'
+}
+```
+
+#### True/False Questions
+
+```typescript
+interface TrueFalseQuestion extends Question {
+  type: 'true_false'
+  
+  // T/F specific properties
+  statement: string           // The statement being evaluated
+  reasoning?: string          // Why the statement is true/false
+  
+  // Source analysis
+  statementSource: StatementSource
+}
+
+interface StatementSource {
+  contentSection: string      // Which content section this came from
+  factType: 'definition' | 'principle' | 'example' | 'comparison'
+  certainty: number          // 0-1, how certain we are about the fact
+}
+```
+
+#### Fill-in-the-Blank Questions
+
+```typescript
+interface FillInBlankQuestion extends Question {
+  type: 'fill_blank'
+  
+  // Template with blanks
+  template: string            // e.g., "The _____ is responsible for _____"
+  blanks: BlankConfiguration[]
+  
+  // Scoring configuration
+  scoringMode: 'all_or_nothing' | 'partial_credit' | 'individual_blanks'
+}
+
+interface BlankConfiguration {
+  id: string
+  position: number           // Position in template (0-indexed)
+  acceptedAnswers: string[]  // All acceptable answers for this blank
+  hint?: string             // Optional hint for learner
+  
+  // Validation rules
+  validation: BlankValidation
+}
+
+interface BlankValidation {
+  caseSensitive: boolean
+  allowTypos: boolean        // Use fuzzy matching
+  typoTolerance: number     // 0-1, how tolerant of typos
+  synonyms: string[]        // Alternative acceptable terms
+}
+```
+
+#### Short Answer Questions
+
+```typescript
+interface ShortAnswerQuestion extends Question {
+  type: 'short_answer'
+  
+  // Expected answer characteristics
+  expectedAnswer: ExpectedAnswer
+  
+  // Scoring configuration
+  scoringCriteria: ScoringCriteria[]
+  
+  // AI scoring configuration
+  aiScoring: AIScoringConfig
+}
+
+interface ExpectedAnswer {
+  sampleAnswers: string[]     // Good example answers
+  keyPoints: string[]         // Essential points that should be mentioned
+  minimumWords: number
+  maximumWords: number
+}
+
+interface ScoringCriteria {
+  id: string
+  description: string
+  points: number
+  required: boolean          // Must be present for any credit
+  indicators: string[]       // Keywords/phrases that indicate this criteria is met
+}
+
+interface AIScoringConfig {
+  enabled: boolean
+  model: string             // AI model to use for scoring
+  confidence_threshold: number // Minimum confidence for AI scoring
+  humanReviewRequired: boolean  // Require human review of AI scores
+}
+```
+
+## Question Metadata
+
+### QuestionMetadata
+
+Metadata about individual questions for organization and analysis.
+
+```typescript
+interface QuestionMetadata {
+  // Content relationship
+  sourceTopics: string[]      // Topic IDs this question addresses
+  sourceConcepts: string[]    // Concept IDs this question tests
+  sourceSection?: string      // Specific content section ID
+  
+  // Learning assessment
+  bloomsLevel: BloomsLevel
+  difficulty: number          // 1-10 scale
+  cognitiveLoad: number       // 1-10, mental effort required
+  
+  // Question characteristics
+  estimatedTime: number       // Seconds to answer
+  discriminationIndex?: number // How well this question differentiates learners
+  
+  // Categorization
+  tags: string[]
+  categories: string[]
+  
+  // Usage tracking
+  timesUsed: number
+  averageScore?: number       // Historical performance
+  averageTime?: number        // Historical time to complete
+}
+
+interface QuestionValidation {
+  // Validation status
+  status: 'draft' | 'review_pending' | 'approved' | 'rejected' | 'needs_revision'
+  
+  // Quality scores
+  qualityScore: number        // 0-100 overall quality
+  
+  // Specific quality dimensions
+  clarity: number            // 0-100, how clear the question is
+  relevance: number          // 0-100, how relevant to content
+  difficulty_appropriateness: number // 0-100, appropriate difficulty level
+  
+  // Validation issues
+  issues: ValidationIssue[]
+  
+  // Review history
+  reviews: QuestionReview[]
+}
+
+interface ValidationIssue {
+  type: 'clarity' | 'accuracy' | 'bias' | 'difficulty' | 'technical' | 'formatting'
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  description: string
+  suggestion?: string
+  autoFixable: boolean
+}
+
+interface QuestionReview {
+  reviewerId: string
+  reviewerName: string
+  timestamp: Date
+  action: 'approve' | 'reject' | 'request_revision'
+  comments?: string
+  changes?: QuestionChange[]
+}
+
+interface QuestionChange {
+  field: string
+  oldValue: any
+  newValue: any
+  reason?: string
+}
+```
+
+## Quiz Generation Information
+
+### QuizGeneration
+
+Information about how the quiz was generated by AI agents.
+
+```typescript
+interface QuizGeneration {
+  // Generation process
+  generatedAt: Date
+  generationDuration: number  // milliseconds
+  
+  // AI agents involved
+  agents: AgentInfo[]
+  
+  // Generation parameters
+  parameters: GenerationParameters
+  
+  // Quality metrics
+  metrics: GenerationMetrics
+  
+  // Generation history
+  iterations: GenerationIteration[]
+}
+
+interface AgentInfo {
+  agentType: 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_answer' | 'orchestrator'
+  version: string
+  questionsGenerated: number
+  processingTime: number
+  confidence: number         // 0-1, agent's confidence in its output
+}
+
+interface GenerationParameters {
+  contentAnalysisDepth: 'shallow' | 'medium' | 'deep'
+  creativityLevel: number    // 0-1, how creative vs conservative the generation should be
+  focusAreas: string[]      // Topic IDs to focus on
+  avoidAreas: string[]      // Topic IDs to avoid
+  targetDifficulty: DifficultyLevel
+  diversityTarget: number   // 0-1, how much variety in question styles
+}
+
+interface GenerationMetrics {
+  questionsGenerated: number
+  questionsFiltered: number  // Questions removed by quality filters
+  questionsDuplicated: number // Questions identified as duplicates
+  averageConfidence: number  // Average AI confidence across all questions
+  
+  // Coverage metrics
+  topicCoverage: number     // 0-1, how well the quiz covers content topics
+  conceptCoverage: number   // 0-1, how well the quiz covers key concepts
+  difficultyBalance: number // 0-1, how well balanced the difficulty distribution is
+}
+
+interface GenerationIteration {
+  iteration: number
+  timestamp: Date
+  questionsGenerated: number
+  questionsKept: number
+  reason?: string           // Why this iteration was necessary
+}
+```
+
+### ReviewStatus
+
+Current status of human review process for the quiz.
+
+```typescript
+interface ReviewStatus {
+  // Overall status
+  status: 'pending_review' | 'in_review' | 'approved' | 'rejected' | 'published'
+  
+  // Review assignment
+  assignedReviewers: ReviewerAssignment[]
+  
+  // Review progress
+  questionsReviewed: number
+  questionsApproved: number
+  questionsRejected: number
+  questionsNeedingRevision: number
+  
+  // Timeline
+  createdAt: Date
+  firstReviewAt?: Date
+  lastReviewAt?: Date
+  approvedAt?: Date
+  
+  // Review summary
+  overallFeedback?: string
+  recommendedChanges: string[]
+}
+
+interface ReviewerAssignment {
+  reviewerId: string
+  reviewerName: string
+  role: 'content_author' | 'subject_expert' | 'instructional_designer'
+  assignedAt: Date
+  status: 'assigned' | 'in_progress' | 'completed'
+  questionsAssigned: string[] // Question IDs
+}
+```
+
+## Quiz Quality Assessment
+
+### QuizQuality
+
+Overall quality assessment of a generated quiz.
+
+```typescript
+interface QuizQuality {
+  // Overall quality score
+  overallScore: number       // 0-100
+  
+  // Quality dimensions
+  dimensions: QuizQualityDimensions
+  
+  // Question-level quality summary
+  questionQuality: QuestionQualitySummary
+  
+  // Recommendations
+  recommendations: QualityRecommendation[]
+  
+  // Issues requiring attention
+  issues: QualityIssue[]
+}
+
+interface QuizQualityDimensions {
+  contentAlignment: number    // 0-100, how well questions align with content
+  difficultyBalance: number   // 0-100, appropriate difficulty distribution
+  topicCoverage: number      // 0-100, coverage of important topics
+  questionVariety: number    // 0-100, variety in question types and styles
+  clarity: number           // 0-100, overall clarity of questions
+  fairness: number          // 0-100, freedom from bias and unfair advantages
+}
+
+interface QuestionQualitySummary {
+  totalQuestions: number
+  highQualityQuestions: number    // Score >= 80
+  mediumQualityQuestions: number  // Score 60-79
+  lowQualityQuestions: number     // Score < 60
+  averageQuality: number
+  qualityDistribution: QualityDistribution[]
+}
+
+interface QualityDistribution {
+  questionType: QuestionType
+  averageScore: number
+  questionCount: number
+  topIssues: string[]        // Most common issues for this question type
+}
+```
+
+## Publication and Analytics
+
+### PublicationInfo
+
+Information about quiz publication and deployment.
+
+```typescript
+interface PublicationInfo {
+  // Publication details
+  publishedAt: Date
+  publishedBy: string        // User ID of publisher
+  publicationNotes?: string
+  
+  // Version information
+  version: string
+  changeLog: string[]        // List of changes from draft to published
+  
+  // Access configuration
+  access: AccessConfiguration
+  
+  // Integration details
+  deployment: DeploymentInfo
+}
+
+interface AccessConfiguration {
+  visibility: 'public' | 'restricted' | 'private'
+  allowedUsers?: string[]    // User IDs with access (if restricted)
+  allowedGroups?: string[]   // Group IDs with access (if restricted)
+  accessStartDate?: Date     // When quiz becomes available
+  accessEndDate?: Date       // When quiz expires
+}
+
+interface DeploymentInfo {
+  platforms: string[]        // Where the quiz is deployed
+  urls: string[]            // Access URLs
+  integrationIds: string[]  // LMS integration IDs
+}
+```
+
+### QuizAnalytics
+
+Performance and usage analytics for published quizzes.
+
+```typescript
+interface QuizAnalytics {
+  // Usage statistics
+  totalAttempts: number
+  uniqueLearners: number
+  completionRate: number     // Percentage who complete vs start
+  
+  // Performance statistics
+  averageScore: number
+  scoreDistribution: ScoreDistribution[]
+  averageCompletionTime: number
+  
+  // Question-level analytics
+  questionAnalytics: QuestionAnalytics[]
+  
+  // Topic performance
+  topicPerformance: TopicPerformance[]
+  
+  // Trends over time
+  performanceTrends: PerformanceTrend[]
+}
+
+interface ScoreDistribution {
+  scoreRange: string         // e.g., "80-89"
+  count: number
+  percentage: number
+}
+
+interface QuestionAnalytics {
+  questionId: string
+  timesAnswered: number
+  correctRate: number        // Percentage answered correctly
+  averageTime: number        // Average time to answer
+  skipRate: number          // Percentage who skipped
+  commonWrongAnswers: AnswerFrequency[]
+}
+
+interface AnswerFrequency {
+  answerId: string
+  answerText: string
+  frequency: number
+  percentage: number
+}
+
+interface TopicPerformance {
+  topicId: string
+  topicName: string
+  averageScore: number
+  questionCount: number
+  strugglingLearners: number // Number of learners scoring < 60% on this topic
+}
+
+interface PerformanceTrend {
+  date: Date
+  averageScore: number
+  attemptCount: number
+  completionRate: number
+}
+```
+
+## Version Control
+
+### QuizVersion
+
+Version control information for quiz evolution.
+
+```typescript
+interface QuizVersion {
+  // Version identification
+  version: string            // Semantic version (e.g., "1.2.0")
+  previousVersion?: string
+  
+  // Version metadata
+  createdAt: Date
+  createdBy: string
+  releaseNotes: string
+  
+  // Changes from previous version
+  changes: VersionChange[]
+  
+  // Compatibility
+  backwardCompatible: boolean
+  migrationRequired: boolean
+  migrationInstructions?: string
+}
+
+interface VersionChange {
+  type: 'question_added' | 'question_removed' | 'question_modified' | 'configuration_changed' | 'metadata_updated'
+  description: string
+  questionId?: string        // If change is question-specific
+  impact: 'major' | 'minor' | 'patch'
+}
+```
+
+## Usage Examples
+
+### Creating a Draft Quiz
+
+```typescript
+// Example: Creating a quiz from processed content
+const draftQuiz: DraftQuiz = {
+  id: 'quiz_456',
+  contentId: 'content_123',
+  
+  metadata: {
+    title: 'Machine Learning Fundamentals Quiz',
+    description: 'Test your understanding of basic ML concepts',
+    instructions: 'Answer all questions to the best of your ability. You have 30 minutes to complete this quiz.',
+    topics: [
+      {
+        id: 'topic_ml_basics',
+        name: 'Machine Learning Basics',
+        weight: 0.6,
+        questionCount: 6
+      },
+      {
+        id: 'topic_algorithms',
+        name: 'ML Algorithms',
+        weight: 0.4,
+        questionCount: 4
+      }
+    ],
+    learningObjectives: [
+      'Define machine learning and its key concepts',
+      'Distinguish between supervised and unsupervised learning',
+      'Identify common ML algorithms and their applications'
+    ],
+    difficulty: 'intermediate',
+    author: {
+      id: 'author_789',
+      name: 'Dr. Jane Smith',
+      email: 'jane@university.edu',
+      role: 'subject_expert'
+    },
+    subject: 'Computer Science',
+    tags: ['machine learning', 'artificial intelligence', 'algorithms'],
+    estimatedDuration: 30,
+    language: 'en',
+    contentSource: {
+      title: 'Introduction to Machine Learning',
+      type: 'course_material',
+      sections: ['section_1', 'section_2', 'section_3'],
+      processingDate: new Date('2025-07-01')
+    }
+  },
+  
+  configuration: {
+    questionMix: [
+      {
+        type: 'multiple_choice',
+        count: 5,
+        percentage: 50,
+        priority: 'required'
+      },
+      {
+        type: 'true_false',
+        count: 3,
+        percentage: 30,
+        priority: 'preferred'
+      },
+      {
+        type: 'short_answer',
+        count: 2,
+        percentage: 20,
+        priority: 'optional'
+      }
+    ],
+    totalQuestions: 10,
+    difficultyDistribution: {
+      easy: 3,
+      medium: 5,
+      hard: 2
+    },
+    behavior: {
+      allowReview: true,
+      allowRetake: true,
+      maxAttempts: 3,
+      showCorrectAnswers: true,
+      showExplanations: true,
+      requireAllQuestions: true
+    },
+    scoring: {
+      passingScore: 70,
+      weightedScoring: true,
+      partialCredit: true,
+      topicWeighting: [
+        {
+          topicId: 'topic_ml_basics',
+          weight: 1.2
+        }
+      ]
+    },
+    timing: {
+      timeLimit: 30,
+      showTimer: true,
+      warningTime: 5
+    },
+    randomization: {
+      randomizeQuestions: true,
+      randomizeAnswers: true
+    }
+  },
+  
+  questions: [
+    {
+      id: 'question_001',
+      type: 'multiple_choice',
+      content: {
+        text: 'What is the primary difference between supervised and unsupervised learning?',
+        context: 'Consider the role of labeled data in each approach.'
+      },
+      answers: [
+        {
+          id: 'answer_001_a',
+          text: 'Supervised learning uses labeled data, unsupervised learning does not',
+          explanation: 'Correct! Supervised learning requires labeled training data, while unsupervised learning finds patterns in unlabeled data.'
+        },
+        {
+          id: 'answer_001_b',
+          text: 'Supervised learning is faster than unsupervised learning',
+          explanation: 'Incorrect. Speed depends on the algorithm and data size, not the learning type.'
+        },
+        {
+          id: 'answer_001_c',
+          text: 'Unsupervised learning is more accurate than supervised learning',
+          explanation: 'Incorrect. Accuracy depends on the specific problem and implementation.'
+        },
+        {
+          id: 'answer_001_d',
+          text: 'There is no significant difference between them',
+          explanation: 'Incorrect. The use of labeled vs unlabeled data is a fundamental difference.'
+        }
+      ],
+      correctAnswers: ['answer_001_a'],
+      metadata: {
+        sourceTopics: ['topic_ml_basics'],
+        sourceConcepts: ['concept_supervised', 'concept_unsupervised'],
+        sourceSection: 'section_1',
+        bloomsLevel: 'understand',
+        difficulty: 5,
+        cognitiveLoad: 4,
+        estimatedTime: 45,
+        tags: ['supervised learning', 'unsupervised learning', 'definitions'],
+        categories: ['fundamental concepts'],
+        timesUsed: 0
+      },
+      validation: {
+        status: 'review_pending',
+        qualityScore: 88,
+        clarity: 92,
+        relevance: 95,
+        difficulty_appropriateness: 85,
+        issues: [],
+        reviews: []
+      },
+      generation: {
+        agent: 'multiple_choice_v1.0',
+        confidence: 0.89,
+        generatedAt: new Date('2025-07-01T10:15:00Z'),
+        alternatives: 2
+      }
+    }
+    // ... more questions would be included
+  ],
+  
+  generation: {
+    generatedAt: new Date('2025-07-01T10:00:00Z'),
+    generationDuration: 25000,
+    agents: [
+      {
+        agentType: 'multiple_choice',
+        version: '1.0.0',
+        questionsGenerated: 5,
+        processingTime: 15000,
+        confidence: 0.87
+      },
+      {
+        agentType: 'true_false',
+        version: '1.0.0',
+        questionsGenerated: 3,
+        processingTime: 8000,
+        confidence: 0.91
+      },
+      {
+        agentType: 'short_answer',
+        version: '1.0.0',
+        questionsGenerated: 2,
+        processingTime: 12000,
+        confidence: 0.82
+      }
+    ],
+    parameters: {
+      contentAnalysisDepth: 'medium',
+      creativityLevel: 0.7,
+      focusAreas: ['topic_ml_basics'],
+      avoidAreas: [],
+      targetDifficulty: 'intermediate',
+      diversityTarget: 0.8
+    },
+    metrics: {
+      questionsGenerated: 15,
+      questionsFiltered: 5,
+      questionsDuplicated: 0,
+      averageConfidence: 0.87,
+      topicCoverage: 0.92,
+      conceptCoverage: 0.85,
+      difficultyBalance: 0.88
+    },
+    iterations: [
+      {
+        iteration: 1,
+        timestamp: new Date('2025-07-01T10:00:00Z'),
+        questionsGenerated: 15,
+        questionsKept: 10,
+        reason: 'Initial generation with quality filtering'
+      }
+    ]
+  },
+  
+  review: {
+    status: 'pending_review',
+    assignedReviewers: [
+      {
+        reviewerId: 'reviewer_001',
+        reviewerName: 'Prof. Alice Johnson',
+        role: 'subject_expert',
+        assignedAt: new Date('2025-07-01T10:30:00Z'),
+        status: 'assigned',
+        questionsAssigned: ['question_001', 'question_002', 'question_003']
+      }
+    ],
+    questionsReviewed: 0,
+    questionsApproved: 0,
+    questionsRejected: 0,
+    questionsNeedingRevision: 0,
+    createdAt: new Date('2025-07-01T10:00:00Z'),
+    recommendedChanges: []
+  },
+  
+  quality: {
+    overallScore: 87,
+    dimensions: {
+      contentAlignment: 92,
+      difficultyBalance: 85,
+      topicCoverage: 90,
+      questionVariety: 82,
+      clarity: 88,
+      fairness: 94
+    },
+    questionQuality: {
+      totalQuestions: 10,
+      highQualityQuestions: 7,
+      mediumQualityQuestions: 3,
+      lowQualityQuestions: 0,
+      averageQuality: 87,
+      qualityDistribution: [
+        {
+          questionType: 'multiple_choice',
+          averageScore: 89,
+          questionCount: 5,
+          topIssues: ['distractor_plausibility']
+        },
+        {
+          questionType: 'true_false',
+          averageScore: 91,
+          questionCount: 3,
+          topIssues: []
+        },
+        {
+          questionType: 'short_answer',
+          averageScore: 79,
+          questionCount: 2,
+          topIssues: ['scoring_criteria_clarity']
+        }
+      ]
+    },
+    recommendations: [
+      {
+        type: 'proceed_to_review',
+        confidence: 0.92,
+        reasoning: 'High overall quality with good topic coverage and appropriate difficulty balance'
+      }
+    ],
+    issues: [
+      {
+        type: 'minor_improvement',
+        severity: 'low',
+        description: 'Some multiple choice distractors could be more plausible',
+        affectedQuestions: ['question_003', 'question_005']
+      }
+    ]
+  }
+}
+```
+
+## Related Documentation
+
+- [Content Schema](/technical/data-models/content-schema) - Source data structures for quiz generation
+- [Results Schema](/technical/data-models/results-schema) - Scoring and recommendation data structures
+- [System Architecture](/technical/architecture/system-overview) - How quiz generation fits into the overall system
+- [API Reference](/api-reference/quiz-generation) - API endpoints for quiz creation and management
