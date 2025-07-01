@@ -1,33 +1,84 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Reference'
+description: 'Dynamic Quiz Generator API documentation'
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+# API Reference
 
-## Welcome
+The Dynamic Quiz Generator provides a comprehensive REST API for integrating quiz generation, delivery, and analytics into your applications.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+## Overview
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+The API is organized around the core workflows of the Dynamic Quiz Generator:
+
+- **Content Management**: Upload and process content for quiz generation
+- **Quiz Generation**: Create AI-powered quizzes from content
+- **Quiz Delivery**: Present quizzes to learners and collect responses
+- **Results & Analytics**: Retrieve quiz results and learner progress
+
+## Base URL
+
+```
+https://api.dynamicquiz.go1.com/v1
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All API endpoints require authentication using Bearer tokens:
+
+```bash
+curl -H "Authorization: Bearer YOUR_API_TOKEN" \
+  https://api.dynamicquiz.go1.com/v1/quiz
+```
+
+## Response Format
+
+All API responses follow a consistent JSON format:
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
+{
+  "success": true,
+  "data": {
+    // Response data
+  },
+  "pagination": {
+    // Pagination info (for list endpoints)
   }
-]
+}
 ```
+
+## Error Handling
+
+Error responses include detailed information:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_CONTENT",
+    "message": "Content format not supported",
+    "details": {
+      "supportedFormats": ["html", "pdf", "transcript"]
+    }
+  }
+}
+```
+
+## Rate Limiting
+
+API requests are rate limited to:
+- **100 requests per minute** for content processing
+- **1000 requests per minute** for quiz delivery
+- **500 requests per minute** for analytics
+
+## Getting Started
+
+<Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+  Get up and running with the API in 5 minutes
+</Card>
+
+## Next Steps
+
+Explore the API endpoints to integrate quiz functionality into your application. Start with content management to upload your first piece of content for quiz generation.
+
+> **Note**: API documentation is actively being developed. Check back frequently for updates.

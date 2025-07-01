@@ -1,32 +1,66 @@
-# Mintlify Starter Kit
+# Dynamic Quiz Generator Documentation
 
-Click on `Use this template` to copy the Mintlify starter kit. The starter kit contains examples including
+This repository contains the technical documentation for the Dynamic Quiz Generator, an AI-powered assessment tool for personalized learning paths.
 
-- Guide pages
-- Navigation
-- Customizations
-- API Reference pages
-- Use of popular components
+## About the Project
 
-### Development
+The Dynamic Quiz Generator enables learners to assess their knowledge through AI-generated quizzes, helping them identify content gaps and optimize their learning journey.
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview the documentation changes locally. To install, use the following command
+### Key Features
 
+- **AI-Powered Generation**: Automatically generate quizzes from course content
+- **Multiple Question Types**: Support for multiple choice, true/false, fill-in-the-blank, and short answer
+- **Instant Feedback**: Get immediate results with topic-based scoring and recommendations  
+- **Learning Analytics**: Track progress and identify knowledge gaps over time
+
+## Documentation Development
+
+This documentation is built using [Mintlify](https://mintlify.com), a modern documentation platform.
+
+### Prerequisites
+
+- Node.js 18+
+- Mintlify CLI
+
+### Local Development
+
+1. Install the Mintlify CLI globally:
+```bash
+npm i -g mintlify
 ```
-npm i -g mint
+
+2. Start the development server:
+```bash
+mintlify dev
 ```
 
-Run the following command at the root of your documentation (where docs.json is)
+3. Open [http://localhost:3000](http://localhost:3000) to view the documentation
 
-```
-mint dev
-```
+### Documentation Structure
 
-### Publishing Changes
+- `/technical/` - System architecture and implementation details
+- `/api-reference/` - API documentation and integration guides
+- `/docs/` - Project planning and development documentation
 
-Install our Github App to auto propagate changes from your repo to your deployment. Changes will be deployed to production automatically after pushing to the default branch. Find the link to install on your dashboard. 
+### Contributing
 
-#### Troubleshooting
+1. Follow the development workflow outlined in `CLAUDE.md`
+2. Check the development backlog in `/docs/development-backlog.md`
+3. Create feature planning documents for complex changes in `/docs/feature-planning/`
 
-- It the dev environment isn't running - Run `mint install` it'll re-install dependencies.
-- Page loads as a 404 - Make sure you are running in a folder with `docs.json`
+### Troubleshooting
+
+- If the dev environment isn't running: Run `mintlify install` to re-install dependencies
+- Page loads as 404: Make sure you are running in a folder with `docs.json`
+- For Mintlify usage guidance: See `/docs/mintlify-usage-guide.md`
+
+## Project Timeline
+
+- **MVP Target**: October 2025
+- **Current Phase**: Documentation and architecture development
+- **Focus**: Developer documentation first, then user-facing guides
+
+## Support
+
+- **Technical Issues**: [GitHub Issues](https://github.com/go1/dynamic-quiz-creator/issues)
+- **General Support**: [support@go1.com](mailto:support@go1.com)
