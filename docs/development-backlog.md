@@ -4,9 +4,10 @@ This document tracks all documentation tasks for the Dynamic Quiz Generator MVP.
 
 ## Current Focus: Developer Documentation First
 
-**Priority 1**: Minimal branding setup to remove template references
-**Priority 2**: Technical documentation for developers (architecture, APIs, data models)
-**Priority 3**: User-facing documentation (guides, features, integrations)
+**Priority 1**: Minimal branding setup to remove template references ✅ COMPLETED
+**Priority 2**: Project overview and PRD for developer context
+**Priority 3**: Technical documentation for developers (architecture, APIs, data models)
+**Priority 4**: User-facing documentation (guides, features, integrations)
 
 This approach ensures developers have the documentation they need to build the system before creating end-user documentation.
 
@@ -15,19 +16,29 @@ This approach ensures developers have the documentation they need to build the s
 Tasks marked with [FP-XXX] have detailed planning documents in `/docs/feature-planning/`:
 - [FP-001] - Documentation Structure Planning (`001-documentation-structure.md`)
 - [FP-003] - Developer & Technical Documentation (`003-developer-technical-documentation.md`)
-- [FP-004] - Minimal Branding Setup (`004-minimal-branding-setup.md`)
+- [FP-004] - Minimal Branding Setup (`004-minimal-branding-setup.md`) ✅
+- [FP-005] - Project Overview & PRD Integration (`005-project-overview-prd.md`)
 
 *Note: FP-002 was split into FP-003 and FP-004 for better manageability*
 
 ## High Priority Tasks
 
-### Minimal Branding Setup [FP-004] 
+### ✅ Minimal Branding Setup [FP-004] - COMPLETED
 *Essential changes only - focus on removing template references*
-- [ ] Update `docs.json` with Dynamic Quiz Generator name and basic navigation
-- [ ] Remove Mintlify external links and references
-- [ ] Update basic project identity (name, colors)
-- [ ] Create minimal landing page for developers
-- [ ] Clean up Plant Store API template examples
+- [x] Update `docs.json` with Dynamic Quiz Generator name and basic navigation
+- [x] Remove Mintlify external links and references
+- [x] Update basic project identity (name, colors)
+- [x] Create minimal landing page for developers
+- [x] Clean up Plant Store API template examples
+
+### Project Overview & PRD Integration [FP-005]
+*Provide essential project context before technical documentation*
+- [ ] Create developer-friendly project overview page
+- [ ] Document target users and use cases
+- [ ] Define MVP scope and excluded features
+- [ ] Add high-level architecture overview
+- [ ] Establish success metrics and timeline
+- [ ] Update navigation to include project overview
 
 ### Developer & Technical Documentation [FP-003]
 *Core documentation for development team*
